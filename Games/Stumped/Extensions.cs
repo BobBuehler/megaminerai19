@@ -145,6 +145,11 @@ namespace Joueur.cs.Games.Stumped
         {
             return tile.LodgeOwner == AI._Player && tile.Beaver == null && tile.Food >= job.CurrentCost();
         }
+        
+        public static bool FullLoad(this Beaver b)
+        {
+            return b.Food + b.Branches == b.Job.CarryLimit;
+        }
 
         public static Tile GetNeighbor(this Tile tile, string direction)
         {

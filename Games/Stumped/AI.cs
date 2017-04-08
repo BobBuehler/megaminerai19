@@ -109,21 +109,47 @@ namespace Joueur.cs.Games.Stumped
                     b.BuildLodge();
                 }
             }
-            
+			
+			foreach(Beaver b in this.Player.Beavers.Where(b => b.Job.Title == "Hungry"))
+			{
+			    Solver.MoveAndHarvest(b, this.Game.Spawner.Where(s => !s.Type.StartsWith("f")));
+			}
+			
+			// Move and drop full loads at lodges (TODO: check move/act conditions)
+			var dropOffs = new List<Tile>();
+			foreach(Tile lodge in this.Player.Lodges)
+			{
+			    var neighbors = lodge.GetNeighbors();
+			    var branchPiles = neighbors.Where(n => n.Branches > 0);
+			    if (branchPiles.Any())
+			    {
+			        dropOffs.AddRange(branchPiles);
+			    } else {
+			        dropOffs.AddRange(neighbors);
+			    }
+			}
+			foreach(Beaver b in this.Player.Beavers.Where(b => b.FullLoad() && !b.CanBuildLodge()))
+			{
+			    Solver.MoveAndDrop(b, dropOffs, "branch");
+			}
+			
+			// Attack Enemy Beavers with Fighters
+			foreach(Beaver b in this.Player.Beavers.Where(b => b.Job.Title == "Fighter" || b.Job.Title == "Basic"))
+			{
+			    Solver.MoveAndAttack(b, this.Player.Opponent.Beavers);
+			}
             
             // Recruit Fighters!
+            List<Job> recruitJobs = this.Game.Jobs.Where(j => j.Title == "Fighter" || j.Title == "Hungry").ToList();
 			foreach(Tile l in this.Player.Lodges)
 			{
-                Job job = this.Game.Jobs.First(j => j.Title == "Fighter");
+			    Job job = RandomElement<Job>(recruitJobs);
 				if (l.CanRecruit(job))
 				{
 					// TODO: Print error message on failure (null return)
 					job.Recruit(l);
 				}
 			}
-
-            this.Player.Beavers.ForEach(b => Solver.MoveAndAttack(b, this.Player.Opponent.Beavers));
-
 
             Console.WriteLine("Done with our turn");
             return true; // to signify that we are truly done with this turn
