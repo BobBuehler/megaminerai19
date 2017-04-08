@@ -84,10 +84,10 @@ namespace Joueur.cs.Games.Stumped
             
             if (harvester.Moves > 0)
             {
-                var targetPoints = spawners
+                var movePoints = spawners
                     .SelectMany(s => s.Tile.GetNeighbors().Select(n => n.ToPoint()));
 
-                Move(harvester, targetPoints);
+                Move(harvester, movePoints);
             }
 
             Harvest(harvester, spawners);
@@ -118,7 +118,9 @@ namespace Joueur.cs.Games.Stumped
             var targetPoints = targets.Where(t => t.GetCount(resource) > 0);
             if (picker.Moves > 0)
             {
-                Move(picker, targetPoints.Select(t => t.ToPoint()));
+                var movePoints = targetPoints.Concat(targetPoints.SelectMany(t => t.GetNeighbors()))
+                    .Select(n => n.ToPoint());
+                Move(picker, movePoints);
             }
 
             Pickup(picker, targets, resource);
@@ -147,7 +149,9 @@ namespace Joueur.cs.Games.Stumped
             
             if (dropper.Moves > 0)
             {
-                Move(dropper, targets.Select(t => t.ToPoint()));
+                var movePoints = targets.Concat(targets.SelectMany(t => t.GetNeighbors()))
+                    .Select(n => n.ToPoint());
+                Move(dropper, movePoints);
             }
 
             Drop(dropper, targets, resource);
@@ -185,6 +189,38 @@ namespace Joueur.cs.Games.Stumped
         public static IEnumerable<Tile> GetReachableNeighbors(this Tile tile, int jobMoves)
         {
             return tile.GetNeighbors().Where(t => t.IsPathable() && GetMoveCost(tile, t) <= jobMoves);
+        }
+
+        public static Tile ChooseNewLodgeLocation()
+        {
+            return AI._Game.Tiles.MinByValue(t => NewLodgeFitness(t));
+        }
+
+        public static float NewLodgeFitness(Tile tile)
+        {
+            if (tile.LodgeOwner != null || (tile.Beaver != null && tile.Beaver.Owner != AI._Player))
+            {
+                return float.MaxValue;
+            }
+
+            var friendlyBest = 5;
+            var enemyMin = 7;
+            var completeFactor = 5;
+
+            var point = tile.ToPoint();
+
+            var friendlyDistance = AI._Player.Lodges.Select(l => l.ToPoint().ManhattanDistance(point));
+            var friendlyNearness = friendlyDistance.Any() ? friendlyDistance.Min() : 50;
+            var friendlyFitness = Math.Abs(friendlyNearness - friendlyBest);
+
+            var enemyDistance = AI._Player.Opponent.Lodges.Select(l => l.ToPoint().ManhattanDistance(point));
+            var enemyNearness = enemyDistance.Any() ? enemyDistance.Min() : 50;
+            var enemyFitness = Math.Max(enemyMin - enemyNearness, 0);
+
+            var percentIncomplete = 1 - (tile.Branches / (float)AI._Player.BranchesToBuildLodge);
+            var percentFitness = percentIncomplete * completeFactor;
+
+            return friendlyFitness + enemyFitness + percentFitness;
         }
     }
 }

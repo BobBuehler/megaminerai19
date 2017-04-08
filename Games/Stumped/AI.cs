@@ -88,18 +88,6 @@ namespace Joueur.cs.Games.Stumped
         /// <returns>Represents if you want to end your turn. True means end your turn, False means to keep your turn going and re-call this function.</returns>
         public bool RunTurn()
         {
-            // This is your Stumped ShellAI
-            // ShellAI is intended to be a simple AI that does everything possible in the game, but plays the game very poorly
-            // This example code does the following:
-            // 1. Grabs a single beaver
-            // 2. tries to move the beaver
-            // 3. tries to do one of the 5 actions on it
-            // 4. Grabs a lodge and tries to recruit a new beaver
-
-            // NOTE: If you're executing from Visual Studio (or a similar IDE), you should modify the project's Properties file
-            //       and set your session name in the Debug tab
-
-            // First let's do a simple print statement telling us what turn we are on
             Console.WriteLine($"My Turn {this.Game.CurrentTurn}");
 
             foreach(Beaver b in this.Player.Beavers.Where(b => b.CanAct()))
@@ -109,144 +97,75 @@ namespace Joueur.cs.Games.Stumped
                     b.BuildLodge();
                 }
             }
+
+            CoordinateBuildLodges();
 			
-			foreach(Beaver b in this.Player.Beavers.Where(b => b.Job.Title == "Hungry"))
-			{
-			    Solver.MoveAndHarvest(b, this.Game.Spawner.Where(s => !s.Type.StartsWith("f")));
-			}
-			
-			// Move and drop full loads at lodges (TODO: check move/act conditions)
-			var dropOffs = new List<Tile>();
-			foreach(Tile lodge in this.Player.Lodges)
-			{
-			    var neighbors = lodge.GetNeighbors();
-			    var branchPiles = neighbors.Where(n => n.Branches > 0);
-			    if (branchPiles.Any())
-			    {
-			        dropOffs.AddRange(branchPiles);
-			    } else {
-			        dropOffs.AddRange(neighbors);
-			    }
-			}
-			foreach(Beaver b in this.Player.Beavers.Where(b => b.FullLoad() && !b.CanBuildLodge()))
-			{
-			    Solver.MoveAndDrop(b, dropOffs, "branch");
-			}
-			
-			// Attack Enemy Beavers with Fighters
-			foreach(Beaver b in this.Player.Beavers.Where(b => b.Job.Title == "Fighter" || b.Job.Title == "Basic"))
-			{
-			    Solver.MoveAndAttack(b, this.Player.Opponent.Beavers);
-			}
-            
-            // Recruit Fighters!
-            List<Job> recruitJobs = this.Game.Jobs.Where(j => j.Title == "Fighter" || j.Title == "Hungry").ToList();
-			foreach(Tile l in this.Player.Lodges)
-			{
-			    Job job = RandomElement<Job>(recruitJobs);
-				if (l.CanRecruit(job))
-				{
-					// TODO: Print error message on failure (null return)
-					job.Recruit(l);
-				}
-			}
+			// Fall through
+			foreach(Beaver b in this.Player.Beavers)
+            {
+                Solver.MoveAndPickup(b, this.Player.Opponent.Lodges, "branches");
+                Solver.MoveAndAttack(b, this.Player.Opponent.Beavers);
+                Solver.MoveAndHarvest(b, this.Game.Spawner);
+                Solver.MoveAndDrop(b, this.Player.Lodges, "food");
+            }
+
+            Recruit();
 
             Console.WriteLine("Done with our turn");
             return true; // to signify that we are truly done with this turn
         }
 
-        // A random number generator, used for ShellAI. Feel free to remove if you gut C
-        public Random rand = new Random();
-
-        /// <summary>
-        /// Simply returns a random element of an array
-        /// </summary>
-        public T RandomElement<T>(IList<T> items) where T : class
+        public void CoordinateBuildLodges()
         {
-            return items.Any() ? items[rand.Next(items.Count())] : null;
+            var targetDrop = Solver.ChooseNewLodgeLocation();
+
+            this.Player.Beavers
+                .Where(b => b.ToPoint().ManhattanDistance(targetDrop.ToPoint()) < 5)
+                .ForEach(b => Solver.MoveAndDrop(b, new[] { targetDrop }, "branch"));
+
+            foreach (Beaver b in this.Player.Beavers.Where(b => b.Job.Title == "Hungry"))
+            {
+                Solver.MoveAndHarvest(b, this.Game.Spawner.Where(s => s.Type.StartsWith("b")));
+                Solver.MoveAndDrop(b, new[] { targetDrop }, "branch");
+            }
         }
 
-        /// <summary>
-        /// Simply returns a shuffled copy of an array
-        /// </summary>
-        public IList<T> Shuffled<T>(IList<T> a)
+        public void Recruit()
         {
-            a = a.ToList();
-            for (int i = a.Count(); i > 0; i--)
+            Console.WriteLine("Recruit Start: Beaver Count {0}", this.Player.Beavers.Count);
+            var jobs = this.Game.Jobs.ToLookup(j => j.Title);
+            
+            var counts = this.Player.Beavers.GroupBy(b => b.Job.Title).ToDictionary(g => g.Key, g => g.Count());
+            this.Game.Jobs.ForEach(j =>
             {
-                int j = rand.Next(i);
-                T x = a[i - 1];
-                a[i - 1] = a[j];
-                a[j] = x;
-            }
-            return a;
-        }
-
-        /// <summary>
-        /// A very basic path finding algorithm (Breadth First Search) that when given a starting Tile, will return a valid path to the goal Tile.
-        /// </summary>
-        /// <remarks>
-        /// This is NOT an optimal pathfinding algorithm. It is intended as a stepping stone if you want to improve it.
-        /// </remarks>
-        /// <param name="start">the starting Tile</param>
-        /// <param name="goal">the goal Tile</param>
-        /// <returns>A List of Tiles representing the path, the the first element being a valid adjacent Tile to the start, and the last element being the goal. Or an empty list if no path found.</returns>
-        List<Tile> FindPath(Tile start, Tile goal)
-        {
-            // no need to make a path to here...
-            if (start == goal)
-            {
-                return new List<Tile>();
-            }
-
-            // the tiles that will have their neighbors searched for 'goal'
-            Queue<Tile> fringe = new Queue<Tile>();
-
-            // How we got to each tile that went into the fringe.
-            Dictionary<Tile, Tile> cameFrom = new Dictionary<Tile, Tile>();
-
-            // Enqueue start as the first tile to have its neighbors searched.
-            fringe.Enqueue(start);
-
-            // keep exploring neighbors of neighbors... until there are no more.
-            while (fringe.Count > 0)
-            {
-                // the tile we are currently exploring.
-                Tile inspect = fringe.Dequeue();
-
-                // cycle through the tile's neighbors.
-                foreach (Tile neighbor in inspect.GetNeighbors())
+                if (!counts.ContainsKey(j.Title))
                 {
-                    if (neighbor == goal)
-                    {
-                        // Follow the path backward starting at the goal and return it.
-                        List<Tile> path = new List<Tile>();
-                        path.Add(goal);
+                    counts[j.Title] = 0;
+                }
+            });
+            if (counts["Fighter"] < counts["Hungry"])
+            {
+                Recruit(jobs["Fighter"].First());
+            }
+            else
+            {
+                Recruit(jobs["Hungry"].First());
+            }
+            Console.WriteLine("Recruit End:   Beaver Count {0}", this.Player.Beavers.Count);
+        }
 
-                        // Starting at the tile we are currently at, insert them retracing our steps till we get to the starting tile
-                        for (Tile step = inspect; step != start; step = cameFrom[step])
-                        {
-                            path.Insert(0, step);
-                        }
-
-                        return path;
-                    }
-
-                    // if the tile exists, has not been explored or added to the fringe yet, and it is pathable
-                    if (neighbor != null && !cameFrom.ContainsKey(neighbor) && neighbor.IsPathable())
-                    {
-                        // add it to the tiles to be explored and add where it came from.
-                        fringe.Enqueue(neighbor);
-                        cameFrom.Add(neighbor, inspect);
-                    }
-
-                } // foreach(neighbor)
-
-            } // while(fringe not empty)
-
-            // if you're here, that means that there was not a path to get to where you want to go.
-            //   in that case, we'll just return an empty path.
-            return new List<Tile>();
+        public bool Recruit(Job job)
+        {
+            var lodge = this.Player.Lodges.FirstOrDefault(l => l.CanRecruit(job));
+            if (lodge != null)
+            {
+                job.Recruit(lodge);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         #endregion
