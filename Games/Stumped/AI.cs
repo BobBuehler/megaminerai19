@@ -41,7 +41,7 @@ namespace Joueur.cs.Games.Stumped
         /// <returns>string of you AI's name.</returns>
         public override string GetName()
         {
-            return "Stumped C# Player"; // REPLACE THIS WITH YOUR TEAM NAME!
+            return "Rodents of Mass Deforestation";
         }
 
         /// <summary>
