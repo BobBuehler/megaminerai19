@@ -13,6 +13,9 @@ namespace Joueur.cs.Games.Stumped
     /// </summary>
     class AI : BaseAI
     {
+        public static Game _Game;
+        public static Player _Player;
+
         #region Properties
         #pragma warning disable 0169 // the never assigned warnings between here are incorrect. We set it for you via reflection. So these will remove it from the Error List.
         #pragma warning disable 0649
@@ -50,6 +53,8 @@ namespace Joueur.cs.Games.Stumped
         public override void Start()
         {
             base.Start();
+            AI._Game = this.Game;
+            AI._Player = this.Player;
         }
 
         /// <summary>
@@ -96,6 +101,14 @@ namespace Joueur.cs.Games.Stumped
 
             // First let's do a simple print statement telling us what turn we are on
             Console.WriteLine($"My Turn {this.Game.CurrentTurn}");
+
+            foreach(Beaver b in this.Player.Beavers.Where(b => b.CanAct()))
+            {
+                if (b.CanBuildLodge())
+                {
+                    b.BuildLodge();
+                }
+            }
 
             // 1. get the first beaver to try to do things with
             Beaver beaver = this.Player.Beavers.FirstOrDefault();
