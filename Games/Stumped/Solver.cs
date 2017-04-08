@@ -85,7 +85,7 @@ namespace Joueur.cs.Games.Stumped
         // Precondition: Tile is a lodge (use Player.Lodges)
         public static bool CanRecruit(this Tile l, Job j)                                                      
         {               
-            return (l.Beaver == null) && ((AI._Player.Beavers.Count(b => b.Health > 0) <  this._Game.FreeBeaversCount || (l.Food >= j.Cost));
+            return (l.Beaver == null) && ((AI._Player.Beavers.Count(b => b.Health > 0) <  AI._Game.FreeBeaversCount || (l.Food >= j.Cost)));
         }
 
     }
