@@ -21,9 +21,7 @@ namespace Joueur.cs.Games.Stumped
 
         public override int GetHashCode()
         {
-            int result = x;
-            result = 31 * result + y;
-            return result;
+            return AI._Game.MapWidth * y + x;
         }
 
         public override string ToString()

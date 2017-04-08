@@ -91,9 +91,55 @@ namespace Joueur.cs.Games.Stumped
             return t => cache[t];
         }
 
+        public static HashSet<T> ToHashSet<T>(this IEnumerable<T> source)
+        {
+            return new HashSet<T>(source);
+        }
+
         public static Point ToPoint(this Tile tile)
         {
             return new Point(tile.X, tile.Y);
+        }
+
+        public static Point ToPoint(this Beaver beaver)
+        {
+            return beaver.Tile.ToPoint();
+        }
+
+        public static Tile ToTile(this Point point)
+        {
+            return AI._Game.GetTileAt(point.x, point.y);
+        }
+
+        public static Beaver toBeaver(this Point point)
+        {
+            return point.ToTile().Beaver;
+        }
+        public static bool CanBuildLodge(this Beaver b)
+        {
+            return b.Branches + b.Tile.Branches >= b.Owner.BranchesToBuildLodge && b.Tile.LodgeOwner == null;
+        }
+
+        public static bool CanAct(this Beaver b)
+        {
+            return b.Health > 0 && b.Actions > 0 && b.TurnsDistracted == 0 && b.Recruited == true;
+        }
+
+        public static Tile GetNeighbor(this Tile tile, string direction)
+        {
+            switch (direction)
+            {
+                case "North":
+                    return tile.TileNorth;
+                case "East":
+                    return tile.TileEast;
+                case "South":
+                    return tile.TileSouth;
+                case "West":
+                    return tile.TileWest;
+                default:
+                    return tile;
+            }
         }
     }
 }
