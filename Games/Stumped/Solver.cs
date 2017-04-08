@@ -59,6 +59,11 @@ namespace Joueur.cs.Games.Stumped
 
         public static void Harvest(Beaver harvester, IEnumerable<Spawner> targets)
         {
+            if (harvester.OpenCarryCapacity() == 0)
+            {
+                return;
+            }
+
             var targettables = targets.Where(t => t.Health > 0);
             var target = targettables.FirstOrDefault(t => harvester.Tile.HasNeighbor(t.Tile));
             if (target != null)
@@ -72,7 +77,7 @@ namespace Joueur.cs.Games.Stumped
 
         public static void MoveAndHarvest(Beaver harvester, IEnumerable<Spawner> spawners)
         {
-            if (harvester.Branches + harvester.Food >= harvester.Job.CarryLimit)
+            if (harvester.OpenCarryCapacity() == 0)
             {
                 return;
             }
@@ -88,12 +93,64 @@ namespace Joueur.cs.Games.Stumped
             Harvest(harvester, spawners);
         }
 
-        public static void MoveAndPickup(Beaver picker, IEnumerable<Tile> tiles)
+        public static void Pickup(Beaver picker, IEnumerable<Tile> targets, string resource)
         {
+            if (picker.Actions <= 0 || picker.OpenCarryCapacity() == 0)
+            {
+                return;
+            }
+
+            var targettables = targets.Where(t => t.GetCount(resource) > 0 && picker.Tile.HasNeighbor(t));
+            if (targettables.Any())
+            {
+                var target = targettables.MaxByValue(t => t.GetCount(resource));
+                picker.Pickup(target, resource, Math.Min(target.GetCount(resource), picker.OpenCarryCapacity()));
+            }
         }
 
-        public static void MoveAndDrop(Beaver dropper, IEnumerable<Tile> tiles)
+        public static void MoveAndPickup(Beaver picker, IEnumerable<Tile> targets, string resource)
         {
+            if (picker.Actions <= 0 || picker.OpenCarryCapacity() == 0)
+            {
+                return;
+            }
+
+            var targetPoints = targets.Where(t => t.GetCount(resource) > 0);
+            if (picker.Moves > 0)
+            {
+                Move(picker, targetPoints.Select(t => t.ToPoint()));
+            }
+
+            Pickup(picker, targets, resource);
+        }
+
+        public static void Drop(Beaver dropper, IEnumerable<Tile> targets, string resource)
+        {
+            if (dropper.Actions <= 0 || dropper.GetCount(resource) == 0)
+            {
+                return;
+            }
+
+            var target = targets.FirstOrDefault(t => dropper.Tile.HasNeighbor(t));
+            if (target != null)
+            {
+                dropper.Drop(target, resource, dropper.GetCount(resource));
+            }
+        }
+
+        public static void MoveAndDrop(Beaver dropper, IEnumerable<Tile> targets, string resource)
+        {
+            if (dropper.Actions <= 0 || dropper.GetCount(resource) == 0)
+            {
+                return;
+            }
+            
+            if (dropper.Moves > 0)
+            {
+                Move(dropper, targets.Select(t => t.ToPoint()));
+            }
+
+            Drop(dropper, targets, resource);
         }
 
         public static int GetMoveCost(Tile source, Tile dest)
@@ -129,12 +186,5 @@ namespace Joueur.cs.Games.Stumped
         {
             return tile.GetNeighbors().Where(t => t.IsPathable() && GetMoveCost(tile, t) <= jobMoves);
         }
-        
-        // Precondition: Tile is a lodge (use Player.Lodges)
-        public static bool CanRecruit(this Tile l, Job j)                                                      
-        {               
-            return (l.Beaver == null) && ((AI._Player.Beavers.Count(b => b.Health > 0) <  AI._Game.FreeBeaversCount || (l.Food >= j.Cost)));
-        }
-
     }
 }

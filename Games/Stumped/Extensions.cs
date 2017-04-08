@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 
@@ -120,14 +121,29 @@ namespace Joueur.cs.Games.Stumped
         {
             return point.ToTile().Beaver;
         }
-        public static bool CanBuildLodge(this Beaver b)
+        public static bool CanBuildLodge(this Beaver beaver)
         {
-            return b.Branches + b.Tile.Branches >= b.Owner.BranchesToBuildLodge && b.Tile.LodgeOwner == null;
+            return beaver.Branches + beaver.Tile.Branches >= beaver.Owner.BranchesToBuildLodge && beaver.Tile.LodgeOwner == null;
         }
 
-        public static bool CanAct(this Beaver b)
+        public static bool CanAct(this Beaver beaver)
         {
-            return b.Health > 0 && b.Actions > 0 && b.TurnsDistracted == 0 && b.Recruited == true;
+            return beaver.Health > 0 && beaver.Actions > 0 && beaver.TurnsDistracted == 0 && beaver.Recruited == true;
+        }
+
+        public static int OpenCarryCapacity(this Beaver beaver)
+        {
+            return beaver.Job.CarryLimit - (beaver.Branches + beaver.Food);
+        }
+
+        public static int CurrentCost(this Job job)
+        {
+            return AI._Player.Beavers.Count(b => b.Health > 0) < 10 ? 0 : job.Cost;
+        }
+        
+        public static bool CanRecruit(this Tile tile, Job job)
+        {
+            return tile.LodgeOwner == AI._Player && tile.Beaver == null && tile.Food >= job.CurrentCost();
         }
 
         public static Tile GetNeighbor(this Tile tile, string direction)
@@ -145,6 +161,16 @@ namespace Joueur.cs.Games.Stumped
                 default:
                     return tile;
             }
+        }
+
+        public static int GetCount(this Tile tile, string resource)
+        {
+            return resource[0] == 'f' ? tile.Food : tile.Branches;
+        }
+
+        public static int GetCount(this Beaver beaver, string resource)
+        {
+            return resource[0] == 'f' ? beaver.Food : beaver.Branches;
         }
     }
 }
