@@ -96,6 +96,11 @@ namespace Joueur.cs.Games.Stumped
             return new HashSet<T>(source);
         }
 
+        public static Queue<T> ToQueue<T>(this IEnumerable<T> source)
+        {
+            return new Queue<T>(source);
+        }
+
         public static Point ToPoint(this Tile tile)
         {
             return new Point(tile.X, tile.Y);

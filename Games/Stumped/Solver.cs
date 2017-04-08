@@ -21,13 +21,14 @@ namespace Joueur.cs.Games.Stumped
                     p => targetPoints.Contains(p),
                     (p1, p2) => GetMoveCost(p1.ToTile(), p2.ToTile()),
                     p => 0,
-                    p => p.ToTile().GetPathableNeighbors().Select(t => t.ToPoint())
+                    p => p.ToTile().GetReachableNeighbors(attacker.Job.Moves).Select(t => t.ToPoint())
                 );
 
                 var path = search.Path.ToArray();
-                if (path.Length > 1)
+                var steps = path.Skip(1).ToQueue();
+                while(steps.Count > 0 && GetMoveCost(attacker.Tile, steps.Peek().ToTile()) <= attacker.Moves)
                 {
-                    path.Skip(1).Take(attacker.Moves).ForEach(p => attacker.Move(p.ToTile()));
+                    attacker.Move(steps.Dequeue().ToTile());
                 }
             }
 
@@ -76,9 +77,9 @@ namespace Joueur.cs.Games.Stumped
             }
         }
 
-        public static IEnumerable<Tile> GetPathableNeighbors(this Tile tile)
+        public static IEnumerable<Tile> GetReachableNeighbors(this Tile tile, int jobMoves)
         {
-            return tile.GetNeighbors().Where(t => t.IsPathable());
+            return tile.GetNeighbors().Where(t => t.IsPathable() && GetMoveCost(tile, t) <= jobMoves);
         }
         
         // Precondition: Tile is a lodge (use Player.Lodges)
