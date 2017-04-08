@@ -7,32 +7,27 @@ namespace Joueur.cs.Games.Stumped
 {
     static class Solver
     {
-        public static void MoveAndAttack(Beaver attacker, IEnumerable<Beaver> targets)
+        public static void Move(Beaver mover, IEnumerable<Point> targets)
         {
-            if (attacker.Moves > 0)
-            {
-                var targetPoints = targets
-                    .Where(t => t.Health > 0)
-                    .SelectMany(t => t.Tile.GetNeighbors().Select(n => n.ToPoint()))
-                    .ToHashSet();
+            var targetPoints = targets.ToHashSet<Point>();
 
+            if (mover.Moves > 0)
+            {
                 var search = new AStar<Point>(
-                    new[] { attacker.ToPoint() },
+                    new[] { mover.ToPoint() },
                     p => targetPoints.Contains(p),
                     (p1, p2) => GetMoveCost(p1.ToTile(), p2.ToTile()),
                     p => 0,
-                    p => p.ToTile().GetReachableNeighbors(attacker.Job.Moves).Select(t => t.ToPoint())
+                    p => p.ToTile().GetReachableNeighbors(mover.Job.Moves).Select(t => t.ToPoint())
                 );
 
                 var path = search.Path.ToArray();
                 var steps = path.Skip(1).ToQueue();
-                while(steps.Count > 0 && GetMoveCost(attacker.Tile, steps.Peek().ToTile()) <= attacker.Moves)
+                while (steps.Count > 0 && GetMoveCost(mover.Tile, steps.Peek().ToTile()) <= mover.Moves)
                 {
-                    attacker.Move(steps.Dequeue().ToTile());
+                    mover.Move(steps.Dequeue().ToTile());
                 }
             }
-
-            Attack(attacker, targets);
         }
 
         public static void Attack(Beaver attacker, IEnumerable<Beaver> targets)
@@ -46,6 +41,51 @@ namespace Joueur.cs.Games.Stumped
                     attacker.Attack(target);
                 }
             }
+        }
+
+        public static void MoveAndAttack(Beaver attacker, IEnumerable<Beaver> targets)
+        {
+            if (attacker.Moves > 0)
+            {
+                var targetPoints = targets
+                    .Where(t => t.Health > 0)
+                    .SelectMany(t => t.Tile.GetNeighbors().Select(n => n.ToPoint()));
+
+                Move(attacker, targetPoints);
+            }
+
+            Attack(attacker, targets);
+        }
+
+        public static void Harvest(Beaver harvester, IEnumerable<Spawner> targets)
+        {
+            var targettables = targets.Where(t => t.Health > 0);
+            var target = targettables.FirstOrDefault(t => harvester.Tile.HasNeighbor(t.Tile));
+            if (target != null)
+            {
+                while (harvester.Actions > 0 && target.Health > 0)
+                {
+                    harvester.Harvest(target);
+                }
+            }
+        }
+
+        public static void MoveAndHarvest(Beaver harvester, IEnumerable<Spawner> spawners)
+        {
+            if (harvester.Branches + harvester.Food >= harvester.Job.CarryLimit)
+            {
+                return;
+            }
+            
+            if (harvester.Moves > 0)
+            {
+                var targetPoints = spawners
+                    .SelectMany(s => s.Tile.GetNeighbors().Select(n => n.ToPoint()));
+
+                Move(harvester, targetPoints);
+            }
+
+            Harvest(harvester, spawners);
         }
 
         public static int GetMoveCost(Tile source, Tile dest)
