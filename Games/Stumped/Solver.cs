@@ -7,19 +7,44 @@ namespace Joueur.cs.Games.Stumped
 {
     static class Solver
     {
-        public static void MoveAndAttack(IEnumerable<Beaver> attackers, IEnumerable<Beaver> targets)
+        public static void MoveAndAttack(Beaver attacker, IEnumerable<Beaver> targets)
         {
-            var targetPoints = targets.SelectMany(t => t.Tile.GetNeighbors().Select(n => n.ToPoint())).ToHashSet();
+            if (attacker.Moves > 0)
+            {
+                var targetPoints = targets
+                    .Where(t => t.Health > 0)
+                    .SelectMany(t => t.Tile.GetNeighbors().Select(n => n.ToPoint()))
+                    .ToHashSet();
 
-            var search = new AStar<Point>(
-                attackers.Select(b => b.ToPoint()),
-                p => targetPoints.Contains(p),
-                (p1, p2) => GetMoveCost(p1.ToTile(), p2.ToTile()),
-                p => 0,
-                p => p.ToTile().GetNeighbors().Select(t => t.ToPoint())
-            );
+                var search = new AStar<Point>(
+                    new[] { attacker.ToPoint() },
+                    p => targetPoints.Contains(p),
+                    (p1, p2) => GetMoveCost(p1.ToTile(), p2.ToTile()),
+                    p => 0,
+                    p => p.ToTile().GetPathableNeighbors().Select(t => t.ToPoint())
+                );
 
+                var path = search.Path.ToArray();
+                if (path.Length > 1)
+                {
+                    path.Skip(1).Take(attacker.Moves).ForEach(p => attacker.Move(p.ToTile()));
+                }
+            }
 
+            Attack(attacker, targets);
+        }
+
+        public static void Attack(Beaver attacker, IEnumerable<Beaver> targets)
+        {
+            var targettables = targets.Where(t => t.Recruited && t.Health > 0);
+            var target = targettables.FirstOrDefault(t => attacker.Tile.HasNeighbor(t.Tile));
+            if (target != null)
+            {
+                while (attacker.Actions > 0 && target.Health > 0)
+                {
+                    attacker.Attack(target);
+                }
+            }
         }
 
         public static int GetMoveCost(Tile source, Tile dest)
@@ -49,6 +74,11 @@ namespace Joueur.cs.Games.Stumped
                 default:
                     return direction;
             }
+        }
+
+        public static IEnumerable<Tile> GetPathableNeighbors(this Tile tile)
+        {
+            return tile.GetNeighbors().Where(t => t.IsPathable());
         }
     }
 }
