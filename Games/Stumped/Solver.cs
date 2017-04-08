@@ -88,6 +88,14 @@ namespace Joueur.cs.Games.Stumped
             Harvest(harvester, spawners);
         }
 
+        public static void MoveAndPickup(Beaver picker, IEnumerable<Tile> tiles)
+        {
+        }
+
+        public static void MoveAndDrop(Beaver dropper, IEnumerable<Tile> tiles)
+        {
+        }
+
         public static int GetMoveCost(Tile source, Tile dest)
         {
             if (source.GetNeighbor(source.FlowDirection) == dest)
