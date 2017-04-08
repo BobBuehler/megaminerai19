@@ -80,5 +80,12 @@ namespace Joueur.cs.Games.Stumped
         {
             return tile.GetNeighbors().Where(t => t.IsPathable());
         }
+        
+        // Precondition: Tile is a lodge (use Player.Lodges)
+        public static bool CanRecruit(this Tile l, Job j)                                                      
+        {               
+            return (l.Beaver == null) && ((AI._Player.Beavers.Count() < 10) || (l.Food >= j.Cost));
+        }
+
     }
 }

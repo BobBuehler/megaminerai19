@@ -291,6 +291,18 @@ namespace Joueur.cs.Games.Stumped
                     job.Recruit(lodge);
                 }
             }
+            
+            // Recruit Fighters!
+			foreach(Tile l in this.Player.Lodges)
+			{
+                Job job = this.Game.Jobs.First(j => j.Title == "Fighter");
+				if (l.CanRecruit(job))
+				{
+					// TODO: Print error message on failure (null return)
+					job.Recruit(l);
+				}
+			}
+
 
             Console.WriteLine("Done with our turn");
             return true; // to signify that we are truly done with this turn
@@ -390,7 +402,7 @@ namespace Joueur.cs.Games.Stumped
             return new List<Tile>();
         }
 
-
         #endregion
+
     }
 }
