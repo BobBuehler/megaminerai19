@@ -25,10 +25,15 @@ namespace Joueur.cs.Games.Stumped
             }
         }
 
-        public static void MoveAlong(Beaver beaver, IEnumerable<Point> steps, bool dontStopDanger = false)
+        public static void MoveAlong(Beaver beaver, IEnumerable<Point> steps, bool dontStopInDanger = false)
         {
+            if (!steps.Any())
+            {
+                return;
+            }
+
             IEnumerable<Point> dontStops = new Point[0];
-            if (dontStopDanger)
+            if (dontStopInDanger)
             {
                 var fears = AI._Player.Opponent.Beavers
                     .Where(b => b.CanBeAttacked())

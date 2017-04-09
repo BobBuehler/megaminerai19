@@ -169,7 +169,7 @@ namespace Joueur.cs.Games.Stumped
 
             while (angryBeavers.Any())
             {
-                if (this.Player.Opponent.Lodges.Count >= 8)
+                if (this.Player.Opponent.Lodges.Count >= 9)
                 {
                     this.attackTargets = this.Player.Opponent.Lodges;
                 }
@@ -184,6 +184,12 @@ namespace Joueur.cs.Games.Stumped
                 
                 var beaver = pairPath.First().ToTile().Beaver;
                 angryBeavers.Remove(beaver);
+
+                if (beaver.Job == AI.HotLady)
+                {
+                    Solver.MoveAndAttack(beaver, this.Player.Opponent.Beavers.Where(b => b.TurnsDistracted == 0));
+                    continue;
+                }
 
                 if (pairPath.Length > 1)
                 {
@@ -478,25 +484,28 @@ namespace Joueur.cs.Games.Stumped
         public void Recruit()
         {
             var didRecruit = true;
+            var counts = this.Game.Jobs.ToDictionary(j => j.Title, j => 0);
+            this.Player.Beavers.ForEach(b => counts[b.Job.Title]++);
+
             while (didRecruit)
             {
-                var counts = this.Game.Jobs.ToDictionary(j => j.Title, j => 0);
-                this.Player.Beavers.ForEach(b => counts[b.Job.Title]++);
-
                 didRecruit = false;
 
                 if (counts["Hungry"] < AI.BeaverCount / 7 && ShouldSpawnHungry())
                 {
                     Console.WriteLine("HUNGRY!!!");
                     didRecruit = Recruit(AI.Hungry, this.Game.Cattails().Select(s => s.Tile.ToPoint()));
+                    if (didRecruit) counts[AI.Hungry.Title]++;
                 }
                 else if (counts["Fighter"] <= counts["Builder"] || !this.harvestTrees.Any())
                 {
                     didRecruit = Recruit(AI.Fighter, this.attackTargets.Select(t => t.ToPoint()));
+                    if (didRecruit) counts[AI.Fighter.Title]++;
                 }
                 else if (this.harvestTrees.Any())
                 {
                     didRecruit = Recruit(AI.Builder, this.harvestTrees);
+                    if (didRecruit) counts[AI.Builder.Title]++;
                 }
 
                 if (didRecruit)
