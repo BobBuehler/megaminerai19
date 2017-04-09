@@ -81,7 +81,7 @@ namespace Joueur.cs.Games.Stumped
 
         public static void Harvest(Beaver harvester, IEnumerable<Spawner> targets)
         {
-            if (harvester.OpenCarryCapacity() == 0)
+            if (!harvester.CanAct() || harvester.OpenCarryCapacity() == 0)
             {
                 return;
             }
@@ -150,7 +150,7 @@ namespace Joueur.cs.Games.Stumped
 
         public static void Drop(Beaver dropper, IEnumerable<Tile> targets, string resource)
         {
-            if (dropper.CanAct() || dropper.GetCount(resource) == 0)
+            if (!dropper.CanAct() || dropper.GetCount(resource) == 0)
             {
                 return;
             }
@@ -164,7 +164,7 @@ namespace Joueur.cs.Games.Stumped
 
         public static void MoveAndDrop(Beaver dropper, IEnumerable<Tile> targets, string resource)
         {
-            if (dropper.CanAct() || dropper.GetCount(resource) == 0)
+            if (!dropper.CanAct() || dropper.GetCount(resource) == 0)
             {
                 return;
             }

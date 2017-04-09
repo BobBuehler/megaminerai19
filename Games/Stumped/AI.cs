@@ -99,7 +99,7 @@ namespace Joueur.cs.Games.Stumped
         /// <returns>Represents if you want to end your turn. True means end your turn, False means to keep your turn going and re-call this function.</returns>
         public bool RunTurn()
         {
-            Console.WriteLine("Turn:{0}, Beavers:{1}x{2}, Lodges:{3}x{4}", this.Game.CurrentTurn, this.Player.Beavers.Count, this.Player.Opponent.Beavers.Count, this.Player.Lodges.Count, this.Player.Opponent.Lodges.Count);
+            Console.WriteLine("TURN:{0}, Beavers:{1}x{2}, Lodges:{3}x{4} ...", this.Game.CurrentTurn, this.Player.Beavers.Count, this.Player.Opponent.Beavers.Count, this.Player.Lodges.Count, this.Player.Opponent.Lodges.Count);
             AI.BeaverCount = AI._Player.Beavers.Count;
             
             BuildLodges();
@@ -119,7 +119,6 @@ namespace Joueur.cs.Games.Stumped
 
             Recruit();
 
-            Console.WriteLine("Done with our turn");
             return true; // to signify that we are truly done with this turn
         }
 
@@ -172,9 +171,13 @@ namespace Joueur.cs.Games.Stumped
                         {
                             beaver.Pickup(target, "branch");
                         }
-                        else
+                        else if (beaver.Branches > 0)
                         {
                             beaver.Drop(beaver.Tile, "branch");
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                 }
@@ -195,6 +198,7 @@ namespace Joueur.cs.Games.Stumped
         {
             if (beaver.CanAct() && beaver.CanBuildLodge())
             {
+                Console.WriteLine("    Build Lodge: {0}, {1}+{2}/{3}", beaver.ToPoint(), beaver.Branches, beaver.Tile.Branches, this.Player.BranchesToBuildLodge);
                 beaver.BuildLodge();
             }
         }
@@ -306,11 +310,6 @@ namespace Joueur.cs.Games.Stumped
             }
 
             var lodge = recruiters.MinByValue(r => targets.Select(t => t.ManhattanDistance(r.ToPoint())).Min());
-
-            if (lodge != null)
-            {
-                Console.WriteLine("Recruiting Cost:{0}, Tile: {1}={2}", job.CurrentCost(), lodge.ToPoint(), lodge.Food);
-            }
 
             return lodge != null && job.Recruit(lodge) != null;
         }
