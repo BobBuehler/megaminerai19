@@ -16,10 +16,11 @@ namespace Joueur.cs.Games.Stumped
         public static Game _Game;
         public static Player _Player;
         public static int BeaverCount;
+        public static Dictionary<string, Point> GoalLocations;
 
         #region Properties
-        #pragma warning disable 0169 // the never assigned warnings between here are incorrect. We set it for you via reflection. So these will remove it from the Error List.
-        #pragma warning disable 0649
+#pragma warning disable 0169 // the never assigned warnings between here are incorrect. We set it for you via reflection. So these will remove it from the Error List.
+#pragma warning disable 0649
         /// <summary>
         /// This is the Game object itself, it contains all the information about the current game
         /// </summary>
@@ -65,6 +66,8 @@ namespace Joueur.cs.Games.Stumped
             AI._Game = this.Game;
             AI._Player = this.Player;
 
+            AI.GoalLocations = new Dictionary<string, Point>();
+
             this.Basic = this.Game.Jobs.First(j => j.Title == "Basic");
             this.Bulky = this.Game.Jobs.First(j => j.Title == "Bulky");
             this.Builder = this.Game.Jobs.First(j => j.Title == "Builder");
@@ -108,7 +111,10 @@ namespace Joueur.cs.Games.Stumped
                 Console.WriteLine("STARTING POSITION: {0}", this.Player.Beavers[0].ToPoint());
             }
             Console.WriteLine("TURN:{0}, Beavers:{1}x{2}, Lodges:{3}x{4} ...", this.Game.CurrentTurn, this.Player.Beavers.Count, this.Player.Opponent.Beavers.Count, this.Player.Lodges.Count, this.Player.Opponent.Lodges.Count);
+
             AI.BeaverCount = AI._Player.Beavers.Count;
+            AI.GoalLocations.Clear();
+            this.Game.Beavers.ForEach(b => AI.GoalLocations[b.Id] = b.ToPoint());
 
             // OnTheBrink();
             
@@ -444,7 +450,7 @@ namespace Joueur.cs.Games.Stumped
                 var counts = this.Game.Jobs.ToDictionary(j => j.Title, j => 0);
                 this.Player.Beavers.ForEach(b => counts[b.Job.Title]++);
 
-                if (counts["Hungry"] < this.Player.Beavers.Count / 7 && ShouldSpawnHungry())
+                if (counts["Hungry"] < AI.BeaverCount / 7 && ShouldSpawnHungry())
                 {
                     Console.WriteLine("HUNGRY!!!");
                     didRecruit = Recruit(this.Hungry, this.Game.Cattails().Select(s => s.Tile.ToPoint()));

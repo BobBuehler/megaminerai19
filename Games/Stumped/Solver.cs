@@ -27,13 +27,14 @@ namespace Joueur.cs.Games.Stumped
 
         public static void MoveAlong(Beaver beaver, IEnumerable<Point> steps)
         {
+            AI.GoalLocations[beaver.Id] = steps.Last();
             if (!beaver.CanMove())
             {
                 return;
             }
 
             var queue = steps.SkipWhile(p => p.Equals(beaver.ToPoint())).ToQueue();
-            while (queue.Count > 0 && GetMoveCost(beaver.Tile, queue.Peek().ToTile()) <= beaver.Moves)
+            while (queue.Count > 0 && queue.Peek().ToTile().IsPathable() && GetMoveCost(beaver.Tile, queue.Peek().ToTile()) <= beaver.Moves)
             {
                 beaver.Move(queue.Dequeue().ToTile());
             }
@@ -46,7 +47,7 @@ namespace Joueur.cs.Games.Stumped
                 isGoal,
                 (p1, p2) => GetMoveCost(p1.ToTile(), p2.ToTile()),
                 p => 0,
-                p => p.ToTile().GetReachableNeighbors(moves).Select(t => t.ToPoint())
+                p => p.ToTile().GetReachableNeighbors(moves, beavers.ToPoints()).Select(t => t.ToPoint())
             );
 
             return search.Path;
@@ -215,6 +216,21 @@ namespace Joueur.cs.Games.Stumped
         public static IEnumerable<Tile> GetReachableNeighbors(this Tile tile, int jobMoves)
         {
             return tile.GetNeighbors().Where(t => t.IsPathable() && GetMoveCost(tile, t) <= jobMoves);
+        }
+
+        public static IEnumerable<Tile> GetReachableNeighbors(this Tile tile, int jobMoves, IEnumerable<Point> starts)
+        {
+            if (starts.Contains(tile.ToPoint()))
+            {
+                return GetReachableNeighbors(tile, jobMoves);
+            }
+            var pathable = tile.GetNeighbors().Where(t => t.Spawner == null && t.LodgeOwner == null && WillNotHaveBeaver(t));
+            return pathable.Where(n => GetMoveCost(tile, n) <= jobMoves);
+        }
+
+        public static bool WillNotHaveBeaver(Tile tile)
+        {
+            return tile.Beaver == null || !tile.ToPoint().Equals(AI.GoalLocations[tile.Beaver.Id]);
         }
 
         public static Tile ChooseNewLodgeLocation()
