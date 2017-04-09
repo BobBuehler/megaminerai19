@@ -105,7 +105,7 @@ namespace Joueur.cs.Games.Stumped
 
             BuildLodges();
 
-            CoordinateBuildLodges();
+            HungryLodgeBuilders();
 			
 			// Fall through
 			foreach(Beaver b in this.Player.Beavers)
