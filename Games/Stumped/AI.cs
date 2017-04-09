@@ -35,11 +35,12 @@ namespace Joueur.cs.Games.Stumped
         // you can add additional properties here for your AI to use
         #endregion
 
-        public Job Basic;
-        public Job Bulky;
-        public Job Builder;
-        public Job Fighter;
-        public Job Hungry;
+        public static Job Basic;
+        public static Job Bulky;
+        public static Job Builder;
+        public static Job Fighter;
+        public static Job HotLady;
+        public static Job Hungry;
 
         public IEnumerable<Tile> attackTargets;
         public HashSet<Point> harvestTrees;
@@ -68,11 +69,12 @@ namespace Joueur.cs.Games.Stumped
 
             AI.GoalLocations = new Dictionary<string, Point>();
 
-            this.Basic = this.Game.Jobs.First(j => j.Title == "Basic");
-            this.Bulky = this.Game.Jobs.First(j => j.Title == "Bulky");
-            this.Builder = this.Game.Jobs.First(j => j.Title == "Builder");
-            this.Fighter = this.Game.Jobs.First(j => j.Title == "Fighter");
-            this.Hungry = this.Game.Jobs.First(j => j.Title == "Hungry");
+            AI.Basic = this.Game.Jobs.First(j => j.Title == "Basic");
+            AI.Bulky = this.Game.Jobs.First(j => j.Title == "Bulky");
+            AI.Builder = this.Game.Jobs.First(j => j.Title == "Builder");
+            AI.Fighter = this.Game.Jobs.First(j => j.Title == "Fighter");
+            AI.HotLady = this.Game.Jobs.First(j => j.Title == "Hot Lady");
+            AI.Hungry = this.Game.Jobs.First(j => j.Title == "Hungry");
         }
 
         /// <summary>
@@ -162,7 +164,7 @@ namespace Joueur.cs.Games.Stumped
 
         public void Attack()
         {
-            var angryBeavers = this.Player.Beavers.Where(b => b.Job != this.Builder && b.Job != this.Hungry).ToList();
+            var angryBeavers = this.Player.Beavers.Where(b => b.Job != AI.Builder && b.Job != AI.Hungry).ToList();
             this.attackTargets = this.Player.Opponent.Lodges.Concat(this.Player.Opponent.Beavers.Where(b => b.CanBeAttacked()).Select(b => b.Tile));
 
             while (angryBeavers.Any())
@@ -174,7 +176,7 @@ namespace Joueur.cs.Games.Stumped
 
                 var movePoints = this.attackTargets.SelectMany(t => t.GetNeighbors()).Select(t => t.ToPoint()).ToHashSet();
 
-                var pairPath = Solver.GetClosestPath(angryBeavers, p => movePoints.Contains(p), this.Fighter.Moves).ToArray();
+                var pairPath = Solver.GetClosestPath(angryBeavers, p => movePoints.Contains(p), AI.Fighter.Moves).ToArray();
                 if (pairPath.Length < 1)
                 {
                     return;
@@ -185,7 +187,7 @@ namespace Joueur.cs.Games.Stumped
 
                 if (pairPath.Length > 1)
                 {
-                    Solver.MoveAlong(beaver, pairPath);
+                    Solver.MoveAlong(beaver, pairPath, true);
                 }
 
                 var target = this.attackTargets.FirstOrDefault(t => t._HasNeighbor(beaver.Tile));
@@ -233,7 +235,7 @@ namespace Joueur.cs.Games.Stumped
 
         public void BuildLodges()
         {
-            foreach (Beaver b in this.Player.Beavers.Where(b => b.Job != this.Builder))
+            foreach (Beaver b in this.Player.Beavers.Where(b => b.Job != AI.Builder))
             {
                 BuildLodge(b);
             }
@@ -250,7 +252,7 @@ namespace Joueur.cs.Games.Stumped
 
         public void LodgeBuilders()
         {
-            var builderBeavers = this.Player.Beavers.Where(b => b.Job == this.Builder).ToList();
+            var builderBeavers = this.Player.Beavers.Where(b => b.Job == AI.Builder).ToList();
             this.harvestTrees = this.Game.Spawner.Where(s => s.Type == "branches" && ValidTree(s)).Select(s => s.Tile.ToPoint()).ToHashSet();
 
             while(builderBeavers.Any() && this.harvestTrees.Any())
@@ -261,7 +263,7 @@ namespace Joueur.cs.Games.Stumped
                     return;
                 }
 
-                var pairPath = Solver.GetClosestPath(builderBeavers, p => treeNeighbors.Contains(p), this.Builder.Moves).ToArray();
+                var pairPath = Solver.GetClosestPath(builderBeavers, p => treeNeighbors.Contains(p), AI.Builder.Moves).ToArray();
                 if (pairPath.Length < 1)
                 {
                     return;
@@ -320,7 +322,7 @@ namespace Joueur.cs.Games.Stumped
                     p => !roadPath.Contains(p) && p.ToTile().FlowDirection == "",
                     (p1, p2) => Solver.GetMoveCost(p1.ToTile(), p2.ToTile()),
                     p => 0,
-                    p => p.ToTile().GetReachableNeighbors(this.Builder.Moves).Select(t => t.ToPoint())
+                    p => p.ToTile().GetReachableNeighbors(AI.Builder.Moves).Select(t => t.ToPoint())
                 );
 
                 var dropOff = dropOffSearch.GScore
@@ -358,7 +360,7 @@ namespace Joueur.cs.Games.Stumped
 
         public bool ValidTreeNeighbor(Tile t)
         {
-            return t.Spawner == null && t.LodgeOwner == null && (this.Player.BranchesToBuildLodge < this.Builder.CarryLimit || t.FlowDirection == "");
+            return t.Spawner == null && t.LodgeOwner == null && (this.Player.BranchesToBuildLodge < AI.Builder.CarryLimit || t.FlowDirection == "");
         }
 
         public void CoordinateBuildLodges()
@@ -378,14 +380,14 @@ namespace Joueur.cs.Games.Stumped
 
         public void Feast()
         {
-            var hungryBeavers = this.Player.Beavers.Where(b => b.Job == this.Hungry && b.Food < 12 && b.OpenCarryCapacity() > 0).ToList();
+            var hungryBeavers = this.Player.Beavers.Where(b => b.Job == AI.Hungry && b.Food < 12 && b.OpenCarryCapacity() > 0).ToList();
             var cattails = this.Game.Cattails().Select(s => s.Tile.ToPoint()).ToHashSet();
 
             while (hungryBeavers.Any() && cattails.Any())
             {
                 var cattailNeighbors = cattails.SelectMany(c => c.ToTile().GetNeighbors()).Select(n => n.ToPoint()).ToHashSet();
 
-                var pairPath = Solver.GetClosestPath(hungryBeavers, p => cattailNeighbors.Contains(p), this.Hungry.Moves).ToArray();
+                var pairPath = Solver.GetClosestPath(hungryBeavers, p => cattailNeighbors.Contains(p), AI.Hungry.Moves).ToArray();
                 if (pairPath.Length < 1)
                 {
                     break;
@@ -411,7 +413,7 @@ namespace Joueur.cs.Games.Stumped
             while (fullBeavers.Any())
             {
                 var lodgeNeighbors = this.Player.Lodges.SelectMany(l => l.GetNeighbors()).Where(n => n.IsPathable()).Select(n => n.ToPoint()).ToHashSet();
-                var pairPath = Solver.GetClosestPath(fullBeavers, p => lodgeNeighbors.Contains(p), this.Hungry.Moves).ToArray();
+                var pairPath = Solver.GetClosestPath(fullBeavers, p => lodgeNeighbors.Contains(p), AI.Hungry.Moves).ToArray();
                 if (pairPath.Length < 1)
                 {
                     break;
@@ -456,15 +458,15 @@ namespace Joueur.cs.Games.Stumped
                 if (counts["Hungry"] < AI.BeaverCount / 7 && ShouldSpawnHungry())
                 {
                     Console.WriteLine("HUNGRY!!!");
-                    didRecruit = Recruit(this.Hungry, this.Game.Cattails().Select(s => s.Tile.ToPoint()));
+                    didRecruit = Recruit(AI.Hungry, this.Game.Cattails().Select(s => s.Tile.ToPoint()));
                 }
                 else if (counts["Fighter"] <= counts["Builder"] || !this.harvestTrees.Any())
                 {
-                    didRecruit = Recruit(this.Fighter, this.attackTargets.Select(t => t.ToPoint()));
+                    didRecruit = Recruit(AI.Fighter, this.attackTargets.Select(t => t.ToPoint()));
                 }
                 else if (this.harvestTrees.Any())
                 {
-                    didRecruit = Recruit(this.Builder, this.harvestTrees);
+                    didRecruit = Recruit(AI.Builder, this.harvestTrees);
                 }
 
                 if (didRecruit)

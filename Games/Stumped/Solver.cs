@@ -25,8 +25,23 @@ namespace Joueur.cs.Games.Stumped
             }
         }
 
-        public static void MoveAlong(Beaver beaver, IEnumerable<Point> steps)
+        public static void MoveAlong(Beaver beaver, IEnumerable<Point> steps, bool dontStopDanger = false)
         {
+            IEnumerable<Point> dontStops = new Point[0];
+            if (dontStopDanger)
+            {
+                var fears = AI._Player.Opponent.Beavers
+                    .Where(b => b.CanBeAttacked())
+                    .Where(b => b.Job == AI.Basic || b.Job == AI.Fighter || b.Job == AI.Bulky || b.Job == AI.HotLady)
+                    .Where(b => !b.Tile.GetNeighbors().Any(n => n.Beaver != null && n.Beaver.Owner == AI._Player));
+                if (fears.Any())
+                {
+                    dontStops = AI._Game.Tiles.Where(t => fears.Select(b => b.ToPoint().ManhattanDistance(t.ToPoint())).Min() == 2)
+                        .ToPoints()
+                        .ToHashSet();
+                }
+            }
+
             AI.GoalLocations[beaver.Id] = steps.Last();
             if (!beaver.CanMove())
             {
@@ -34,7 +49,7 @@ namespace Joueur.cs.Games.Stumped
             }
 
             var queue = steps.SkipWhile(p => p.Equals(beaver.ToPoint())).ToQueue();
-            while (queue.Count > 0 && queue.Peek().ToTile().IsPathable() && GetMoveCost(beaver.Tile, queue.Peek().ToTile()) <= beaver.Moves)
+            while (queue.Count > 0 && queue.Peek().ToTile().IsPathable() && GetMoveCost(beaver.Tile, queue.Peek().ToTile()) <= beaver.Moves && !dontStops.Contains(queue.Peek()))
             {
                 beaver.Move(queue.Dequeue().ToTile());
             }
