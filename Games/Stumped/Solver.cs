@@ -276,7 +276,7 @@ namespace Joueur.cs.Games.Stumped
                 p => false,
                 (p1, p2) => GetMoveCost(p1.ToTile(), p2.ToTile()),
                 p => 0,
-                p => p.ToTile().GetReachableNeighbors(3).Select(t => t.ToPoint())
+                p => p.ToTile().GetReachableNeighbors(moves).Select(t => t.ToPoint())
             );
 
             return search;

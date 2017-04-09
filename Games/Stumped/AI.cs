@@ -306,21 +306,21 @@ namespace Joueur.cs.Games.Stumped
             }
             else
             {
-                var landmark = this.Game.Spawner.Where(s => s.Type == "branches" && s != tree).MinByValue(t => t.Tile.ToPoint().ManhattanDistance(tree.Tile.ToPoint())).Tile.ToPoint();
+                var landmark = this.Game.Spawner.Where(s => s.Type == "branches" && s != tree).MaxByValue(t => t.Tile.ToPoint().ManhattanDistance(tree.Tile.ToPoint())).Tile;
                 var roadPath = new AStar<Point>(
                     new[] { tree.Tile.ToPoint() },
-                    p => p.Equals(landmark),
+                    p => landmark.HasNeighbor(p.ToTile()),
                     (p1, p2) => Solver.GetMoveCost(p1.ToTile(), p2.ToTile()),
                     p => 0,
-                    p => p.ToTile().GetReachableNeighbors(3).Select(t => t.ToPoint())
-                ).CalcPathTo(landmark).ToHashSet();
+                    p => p.ToTile().GetNeighbors().Where(n => n.Spawner == null && n.LodgeOwner == null).Select(t => t.ToPoint())
+                ).CalcPathTo(landmark.ToPoint()).ToHashSet();
 
                 var dropOffSearch = new AStar<Point>(
                     new[] { beaver.ToPoint() },
-                    p => !roadPath.Contains(p),
+                    p => !roadPath.Contains(p) && p.ToTile().FlowDirection == "",
                     (p1, p2) => Solver.GetMoveCost(p1.ToTile(), p2.ToTile()),
                     p => 0,
-                    p => p.ToTile().GetReachableNeighbors(3).Select(t => t.ToPoint())
+                    p => p.ToTile().GetReachableNeighbors(this.Builder.Moves).Select(t => t.ToPoint())
                 );
 
                 var dropOff = dropOffSearch.GScore
@@ -343,7 +343,7 @@ namespace Joueur.cs.Games.Stumped
                 else
                 {
                     Solver.MoveAlong(beaver, dropOffPath);
-                    if (beaver.ToPoint().Equals(dropOffPath.Last()) || (beaver.Branches + dropOff.ToTile().Branches) >= this.Player.BranchesToBuildLodge)
+                    if (beaver.ToPoint().Equals(dropOffPath.Last()) || (beaver.Branches + dropOff.ToTile().Branches) < this.Player.BranchesToBuildLodge)
                     {
                         Solver.Drop(beaver, new[] { dropOff.ToTile() }, "branches");
                     }
