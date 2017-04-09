@@ -224,7 +224,7 @@ namespace Joueur.cs.Games.Stumped
 
         public void BuildLodges()
         {
-            foreach (Beaver b in this.Player.Beavers)
+            foreach (Beaver b in this.Player.Beavers.Where(b => b.Job != this.Builder))
             {
                 BuildLodge(b);
             }
@@ -246,13 +246,13 @@ namespace Joueur.cs.Games.Stumped
 
             while(builderBeavers.Any() && this.harvestTrees.Any())
             {
-                var treeNeighbors = this.harvestTrees.SelectMany(t => t.ToTile().GetNeighbors().Where(n => n.LodgeOwner == null && (this.Player.BranchesToBuildLodge - n.Branches < this.Builder.CarryLimit || n.FlowDirection == ""))).ToHashSet();
+                var treeNeighbors = this.harvestTrees.SelectMany(t => t.ToTile().GetNeighbors().Where(n => n.LodgeOwner == null && ValidTreeNeighbor(n))).Select(s => s.ToPoint()).ToHashSet();
                 if (!treeNeighbors.Any())
                 {
                     return;
                 }
 
-                var pairPath = Solver.GetClosestPath(builderBeavers, p => treeNeighbors.Contains(p.ToTile()), this.Builder.Moves).ToArray();
+                var pairPath = Solver.GetClosestPath(builderBeavers, p => treeNeighbors.Contains(p), this.Builder.Moves).ToArray();
                 if (pairPath.Length < 1)
                 {
                     return;
@@ -277,19 +277,79 @@ namespace Joueur.cs.Games.Stumped
 
         public void EngageBeaverAndTree(Beaver beaver, Spawner tree, Point[] path)
         {
-            BuildLodge(beaver);
-            Solver.MoveAlong(beaver, path);
-            if (beaver.ToPoint().Equals(path.Last()))
+            var safeDistance = 5;
+            var enemyDistance = 100;
+            var opponentBeavers = this.Player.Opponent.Beavers.Where(b => b.Health > 0);
+            if (opponentBeavers.Any())
             {
-                Solver.Drop(beaver, new[] { beaver.Tile }, "branches");
-                Solver.Harvest(beaver, new[] { tree });
+                enemyDistance = opponentBeavers.Min(b => b.ToPoint().ManhattanDistance(tree.Tile.ToPoint()));
             }
-            BuildLodge(beaver);
+            if (tree.Tile.GetNeighbors().Where(n => ValidTreeNeighbor(n)).Count() > 1 || enemyDistance < safeDistance)
+            {
+                BuildLodge(beaver);
+                Solver.MoveAlong(beaver, path);
+                if (beaver.ToPoint().Equals(path.Last()))
+                {
+                    Solver.Drop(beaver, new[] { beaver.Tile }, "branches");
+                    Solver.Harvest(beaver, new[] { tree });
+                }
+                BuildLodge(beaver);
+            }
+            else
+            {
+                var landmark = this.Game.Spawner.Where(s => s.Type == "branches" && s != tree).MinByValue(t => t.Tile.ToPoint().ManhattanDistance(tree.Tile.ToPoint())).Tile.ToPoint();
+                var roadPath = new AStar<Point>(
+                    new[] { tree.Tile.ToPoint() },
+                    p => p.Equals(landmark),
+                    (p1, p2) => Solver.GetMoveCost(p1.ToTile(), p2.ToTile()),
+                    p => 0,
+                    p => p.ToTile().GetReachableNeighbors(3).Select(t => t.ToPoint())
+                ).CalcPathTo(landmark).ToHashSet();
+
+                var dropOffSearch = new AStar<Point>(
+                    new[] { beaver.ToPoint() },
+                    p => !roadPath.Contains(p),
+                    (p1, p2) => Solver.GetMoveCost(p1.ToTile(), p2.ToTile()),
+                    p => 0,
+                    p => p.ToTile().GetReachableNeighbors(3).Select(t => t.ToPoint())
+                );
+
+                var dropOff = dropOffSearch.GScore
+                    .Where(g => !roadPath.Contains(g.Key))
+                    .OrderByDescending(g => g.Key.ToTile().Branches)
+                    .MinByValue(g => g.Value).Key;
+
+                var dropOffPath = dropOffSearch.CalcPathTo(dropOff);
+
+                if (beaver.ToPoint().Equals(dropOff))
+                {
+                    BuildLodge(beaver);
+                }
+    
+                if (!beaver.FullLoad())
+                {
+                    Solver.MoveAlong(beaver, path);
+                    Solver.Harvest(beaver, new[] { tree });
+                }
+                else
+                {
+                    Solver.MoveAlong(beaver, dropOffPath);
+                    if (beaver.ToPoint().Equals(dropOffPath.Last()) || (beaver.Branches + dropOff.ToTile().Branches) >= this.Player.BranchesToBuildLodge)
+                    {
+                        Solver.Drop(beaver, new[] { dropOff.ToTile() }, "branches");
+                    }
+                }
+            }
         }
         
         public bool ValidTree(Spawner tree)
         {
-            return tree.Tile.GetNeighbors().Where(n => n.LodgeOwner == null && n.Spawner == null && (this.Player.BranchesToBuildLodge - n.Branches < this.Builder.CarryLimit || n.FlowDirection == "")).Count() > 0;
+            return tree.Tile.GetNeighbors().Where(n => n.LodgeOwner == null && n.Spawner == null && ValidTreeNeighbor(n)).Count() > 0;
+        }
+
+        public bool ValidTreeNeighbor(Tile t)
+        {
+            return t.Spawner == null && t.LodgeOwner == null && (this.Player.BranchesToBuildLodge < this.Builder.CarryLimit || t.FlowDirection == "");
         }
 
         public void CoordinateBuildLodges()
