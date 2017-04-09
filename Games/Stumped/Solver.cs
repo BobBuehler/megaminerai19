@@ -287,7 +287,7 @@ namespace Joueur.cs.Games.Stumped
                 return false;
             }
 
-            var target = beaver.Tile.GetNeighbors().FirstOrDefault(n => n.IsPathable());
+            var target = beaver.Tile.GetNeighbors().FirstOrDefault(n => n.IsPathable() && beaver.Moves >= GetMoveCost(beaver.Tile, n));
             return target != null && beaver.Move(target);
         }
     }
