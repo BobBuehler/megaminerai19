@@ -192,5 +192,10 @@ namespace Joueur.cs.Games.Stumped
         {
             return Math.Abs(t1.X - t2.X) + Math.Abs(t1.Y - t2.Y);
         }
+
+        public static bool _HasNeighbor(this Tile t1, Tile t2)
+        {
+            return (t1.TileNorth == t2 || t1.TileEast == t2 || t1.TileSouth == t2 || t1.TileWest == t2);
+        }
     }
 }

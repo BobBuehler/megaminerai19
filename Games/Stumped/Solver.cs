@@ -50,7 +50,7 @@ namespace Joueur.cs.Games.Stumped
         public static void Attack(Beaver attacker, IEnumerable<Beaver> targets)
         {
             var targettables = targets.Where(t => t.Recruited && t.Health > 0);
-            var target = targettables.FirstOrDefault(t => attacker.Tile.HasNeighbor(t.Tile));
+            var target = targettables.FirstOrDefault(t => attacker.Tile._HasNeighbor(t.Tile));
             if (target != null)
             {
                 while (attacker.Actions > 0 && target.Health > 0)
@@ -82,7 +82,7 @@ namespace Joueur.cs.Games.Stumped
             }
 
             var targettables = targets.Where(t => t.Health > 0);
-            var target = targettables.FirstOrDefault(t => harvester.Tile.HasNeighbor(t.Tile));
+            var target = targettables.FirstOrDefault(t => harvester.Tile._HasNeighbor(t.Tile));
             if (target != null)
             {
                 while (harvester.Actions > 0 && target.Health > 0)
@@ -117,7 +117,7 @@ namespace Joueur.cs.Games.Stumped
                 return;
             }
 
-            var targettables = targets.Where(t => t.GetCount(resource) > 0 && picker.Tile.HasNeighbor(t));
+            var targettables = targets.Where(t => t.GetCount(resource) > 0 && picker.Tile._HasNeighbor(t));
             if (targettables.Any())
             {
                 var target = targettables.MaxByValue(t => t.GetCount(resource));
@@ -150,7 +150,7 @@ namespace Joueur.cs.Games.Stumped
                 return;
             }
 
-            var target = targets.FirstOrDefault(t => dropper.Tile.HasNeighbor(t));
+            var target = targets.FirstOrDefault(t => dropper.Tile._HasNeighbor(t));
             if (target != null)
             {
                 dropper.Drop(target, resource, dropper.GetCount(resource));

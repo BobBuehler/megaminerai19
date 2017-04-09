@@ -105,7 +105,7 @@ namespace Joueur.cs.Games.Stumped
 
             BuildLodges();
 
-            HungryLodgeBuilders();
+            CoordinateBuildLodges();
 			
 			// Fall through
 			foreach(Beaver b in this.Player.Beavers)
@@ -148,7 +148,7 @@ namespace Joueur.cs.Games.Stumped
                     Solver.MoveAlong(beaver, pairPath);
                 }
 
-                var target = targetTiles.FirstOrDefault(t => t.HasNeighbor(beaver.Tile));
+                var target = targetTiles.FirstOrDefault(t => t._HasNeighbor(beaver.Tile));
                 if (target == null)
                 {
                     continue;
@@ -219,7 +219,7 @@ namespace Joueur.cs.Games.Stumped
 
                 if (pairPath.Length == 1)
                 {
-                    beaver = hungryBeavers.Where(b => b.Tile.HasNeighbor(tree.Tile)).MaxByValue(b => b.Branches + b.Tile.Branches);
+                    beaver = hungryBeavers.Where(b => b.Tile._HasNeighbor(tree.Tile)).MaxByValue(b => b.Branches + b.Tile.Branches);
                     pairPath = new[] { beaver.ToPoint() };
                 }
 
