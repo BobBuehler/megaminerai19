@@ -105,8 +105,7 @@ namespace Joueur.cs.Games.Stumped
 
             BuildLodges();
 
-            // HungryLogdeBuilders();
-            CoordinateBuildLodges();
+            HungryLodgeBuilders();
 			
 			// Fall through
 			foreach(Beaver b in this.Player.Beavers)
@@ -181,42 +180,66 @@ namespace Joueur.cs.Games.Stumped
 
         public void BuildLodges()
         {
-            foreach (Beaver b in this.Player.Beavers.Where(b => b.CanAct()))
+            foreach (Beaver b in this.Player.Beavers)
             {
-                if (b.CanBuildLodge())
-                {
-                    b.BuildLodge();
-                }
+                BuildLodge(b);
+            }
+        }
+        
+        public void BuildLodge(Beaver beaver)
+        {
+            if (beaver.CanAct() && beaver.CanBuildLodge())
+            {
+                beaver.BuildLodge();
             }
         }
 
-        public void HungryLogdeBuilders()
+        public void HungryLodgeBuilders()
         {
             var hungryBeavers = this.Player.Beavers.Where(b => b.Job == this.Hungry).ToList();
-            var trees = this.Game.Spawner.Where(s => s.Type == "branches").Select(s => s.Tile.ToPoint()).ToHashSet();
+            var trees = this.Game.Spawner.Where(s => s.Type == "branches" && ValidTree(s)).Select(s => s.Tile.ToPoint()).ToHashSet();
+            var treeNeighbors = trees.SelectMany(t => t.ToTile().GetNeighbors()).ToHashSet();
 
-            while(hungryBeavers.Any() && trees.Any())
+            while(hungryBeavers.Any() && trees.Any() && treeNeighbors.Any())
             {
-                var pairPath = Solver.GetClosestPath(hungryBeavers, p => trees.Contains(p), this.Hungry.Moves).ToArray();
-                var tree = pairPath.Last().ToTile().Spawner;
+                var pairPath = Solver.GetClosestPath(hungryBeavers, p => treeNeighbors.Contains(p.ToTile()), this.Hungry.Moves).ToArray();
+                if (pairPath.Length < 1)
+                {
+                    return;
+                }
+                var treeNeighbor = pairPath.Last().ToTile();
+                var tree = treeNeighbor.GetNeighbors().First(n => trees.Contains(n.ToPoint())).Spawner;
                 var beaver = pairPath.First().ToTile().Beaver;
 
-                if (pairPath.Length == 2)
+                if (pairPath.Length == 1)
                 {
-                    beaver = tree.Tile.GetNeighbors().Where(t => t.Beaver != null).MaxByValue(t => t.Branches + t.Beaver.Branches).Beaver;
-                    pairPath = new[] { beaver.ToPoint(), pairPath[1] };
+                    beaver = tree.Tile.GetNeighbors().Where(t => t.Beaver != null && t.Beaver.Owner == this.Player).MaxByValue(t => t.Branches + t.Beaver.Branches).Beaver;
+                    pairPath = new[] { beaver.ToPoint() };
                 }
 
                 EngageBeaverAndTree(beaver, tree, pairPath);
 
                 hungryBeavers.Remove(beaver);
                 trees.Remove(tree.Tile.ToPoint());
+                treeNeighbors = trees.SelectMany(t => t.ToTile().GetNeighbors()).ToHashSet();
             }
         }
 
         public void EngageBeaverAndTree(Beaver beaver, Spawner tree, Point[] path)
         {
-
+            BuildLodge(beaver);
+            Solver.ApplyMoves(beaver, path);
+            if (path.Length <= 1)
+            {
+                Solver.Drop(beaver, new [] {beaver.Tile}, "branches");
+                Solver.Harvest(beaver, new [] {tree});
+            }
+            BuildLodge(beaver);
+        }
+        
+        public bool ValidTree(Spawner tree)
+        {
+            return tree.Tile.GetNeighbors().Where(n => n.LodgeOwner == null && n.Spawner == null).Count() > 0;
         }
 
         public void CoordinateBuildLodges()

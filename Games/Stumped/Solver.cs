@@ -33,6 +33,24 @@ namespace Joueur.cs.Games.Stumped
                 beaver.Move(queue.Dequeue().ToTile());
             }
         }
+        
+        public static void ApplyMoves(Beaver mover, IEnumerable<Point> path)
+        {
+            if (path.Count() == 0)
+            {
+                return;
+            }
+            var steps = path.ToQueue();
+            if (path.First().x == mover.ToPoint().x && path.First().y == mover.ToPoint().y)
+            {
+                steps.Dequeue();
+            }
+            
+            while(steps.Count > 0 && GetMoveCost(mover.Tile, steps.Peek().ToTile()) <= mover.Moves)
+            {
+                mover.Move(steps.Dequeue().ToTile());
+            }
+        }
 
         public static IEnumerable<Point> GetClosestPath(IEnumerable<Beaver> beavers, Func<Point, bool> isGoal, int moves)
         {
