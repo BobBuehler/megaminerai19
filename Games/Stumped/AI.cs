@@ -318,11 +318,11 @@ namespace Joueur.cs.Games.Stumped
                 var landmark = this.Player.Beavers.MaxByValue(b => b.ToPoint().ManhattanDistance(tree.Tile.ToPoint())).Tile;
                 var roadPath = new AStar<Point>(
                     new[] { path.Last() },
-                    p => false,
+                    p => p.Equals(landmark.ToPoint()),
                     (p1, p2) => Solver.GetMoveCost(p1.ToTile(), p2.ToTile()),
                     p => 0,
                     p => p.ToTile().GetNeighbors().Where(n => n.Spawner == null && n.LodgeOwner == null).Select(t => t.ToPoint())
-                ).CalcPathTo(landmark.ToPoint()).ToHashSet();
+                ).Path.ToHashSet();
 
                 var dropOffSearch = new AStar<Point>(
                     new[] { beaver.ToPoint() },
@@ -333,9 +333,9 @@ namespace Joueur.cs.Games.Stumped
                 );
 
                 var dropOffOrder = dropOffSearch.GScore
-                    .Where(g => !roadPath.Contains(g.Key) && g.Key.ToTile().FlowDirection == "" && !g.Key.Equals(beaver.ToPoint()) && tree.Tile.ToPoint().ManhattanDistance(g.Key) <= 2)
-                    .OrderByDescending(g => g.Key.ToTile().Branches)
-                    .ThenBy(g => g.Value);
+                    .Where(g => !roadPath.Contains(g.Key) && g.Key.ToTile().FlowDirection == "" && !g.Key.Equals(beaver.ToPoint()) && tree.Tile.ToPoint().ManhattanDistance(g.Key) <= 3)
+                    .OrderByDescending(g => g.Value)
+                    .ThenByDescending(g => g.Key.ToTile().Branches);
 
                 if (!dropOffOrder.Any())
                 {
