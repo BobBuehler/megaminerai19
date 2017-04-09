@@ -128,11 +128,14 @@ namespace Joueur.cs.Games.Stumped
 
             BuildLodges();
 
+            var useless = this.Player.Beavers.Where(b => b.CanAct() && b.CanMove());
+
             // Fall through
             foreach (Beaver b in this.Player.Beavers)
             {
                 Solver.Pickup(b, this.Player.Opponent.Lodges, "branches");
                 Solver.Attack(b, this.Player.Opponent.Beavers);
+                Solver.Attack(b, useless);
             }
 
             Recruit();

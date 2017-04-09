@@ -61,6 +61,10 @@ namespace Joueur.cs.Games.Stumped
             {
                 while (attacker.CanAct() && target.CanBeAttacked())
                 {
+                    if (attacker.Owner == target.Owner)
+                    {
+                        Console.WriteLine("DIE SLACKER");
+                    }
                     attacker.Attack(target);
                 }
             }
