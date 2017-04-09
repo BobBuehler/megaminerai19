@@ -150,7 +150,7 @@ namespace Joueur.cs.Games.Stumped
                 return;
             }
 
-            var target = targets.FirstOrDefault(t => dropper.Tile._HasNeighbor(t));
+            var target = targets.FirstOrDefault(t => t == dropper.Tile || dropper.Tile._HasNeighbor(t));
             if (target != null)
             {
                 dropper.Drop(target, resource, dropper.GetCount(resource));

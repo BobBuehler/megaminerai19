@@ -103,12 +103,12 @@ namespace Joueur.cs.Games.Stumped
 
             Attack();
 
+            HungryLodgeBuilders();
+
             BuildLodges();
 
-            HungryLodgeBuilders();
-			
-			// Fall through
-			foreach(Beaver b in this.Player.Beavers)
+            // Fall through
+            foreach (Beaver b in this.Player.Beavers)
             {
                 Solver.Pickup(b, this.Player.Opponent.Lodges, "branches");
                 Solver.Attack(b, this.Player.Opponent.Beavers);
@@ -234,7 +234,7 @@ namespace Joueur.cs.Games.Stumped
         {
             BuildLodge(beaver);
             Solver.MoveAlong(beaver, path);
-            if (path.Length <= 1)
+            if (path.Length <= 2)
             {
                 Solver.Drop(beaver, new[] { beaver.Tile }, "branches");
                 Solver.Harvest(beaver, new[] { tree });
