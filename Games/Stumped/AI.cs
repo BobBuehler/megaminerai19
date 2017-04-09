@@ -334,8 +334,8 @@ namespace Joueur.cs.Games.Stumped
 
                 var dropOffOrder = dropOffSearch.GScore
                     .Where(g => !roadPath.Contains(g.Key) && g.Key.ToTile().FlowDirection == "" && !g.Key.Equals(beaver.ToPoint()) && tree.Tile.ToPoint().ManhattanDistance(g.Key) <= 3)
-                    .OrderByDescending(g => g.Value)
-                    .ThenByDescending(g => g.Key.ToTile().Branches);
+                    .OrderByDescending(g => g.Key.ToTile().Branches)
+                    .ThenByDescending(g => g.Value);
 
                 if (!dropOffOrder.Any())
                 {
@@ -343,7 +343,7 @@ namespace Joueur.cs.Games.Stumped
                     return;
                 }
 
-                if (dropOffOrder.First().Value > 2)
+                if (dropOffOrder.First().Value > 3)
                 {
                     BasicEngageBeaverAndTree(beaver, tree, path);
                 }
