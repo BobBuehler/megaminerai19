@@ -483,6 +483,8 @@ namespace Joueur.cs.Games.Stumped
                 var counts = this.Game.Jobs.ToDictionary(j => j.Title, j => 0);
                 this.Player.Beavers.ForEach(b => counts[b.Job.Title]++);
 
+                didRecruit = false;
+
                 if (counts["Hungry"] < AI.BeaverCount / 7 && ShouldSpawnHungry())
                 {
                     Console.WriteLine("HUNGRY!!!");
