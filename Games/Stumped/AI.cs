@@ -15,6 +15,7 @@ namespace Joueur.cs.Games.Stumped
     {
         public static Game _Game;
         public static Player _Player;
+        public static int BeaverCount;
 
         #region Properties
         #pragma warning disable 0169 // the never assigned warnings between here are incorrect. We set it for you via reflection. So these will remove it from the Error List.
@@ -89,8 +90,10 @@ namespace Joueur.cs.Games.Stumped
         public bool RunTurn()
         {
             Console.WriteLine($"My Turn {this.Game.CurrentTurn}");
+            AI.BeaverCount = AI._Player.Beavers.Count;
 
-            foreach(Beaver b in this.Player.Beavers.Where(b => b.CanAct()))
+
+            foreach (Beaver b in this.Player.Beavers.Where(b => b.CanAct()))
             {
                 if (b.CanBuildLodge())
                 {
@@ -132,7 +135,6 @@ namespace Joueur.cs.Games.Stumped
 
         public void Recruit()
         {
-            Console.WriteLine("Recruit Start: Beaver Count {0}", this.Player.Beavers.Count);
             var jobs = this.Game.Jobs.ToLookup(j => j.Title);
             
             var counts = this.Player.Beavers.GroupBy(b => b.Job.Title).ToDictionary(g => g.Key, g => g.Count());
@@ -143,29 +145,29 @@ namespace Joueur.cs.Games.Stumped
                     counts[j.Title] = 0;
                 }
             });
-            if (counts["Fighter"] < counts["Hungry"])
+
+            var didRecruit = true;
+            while (didRecruit)
             {
-                Recruit(jobs["Fighter"].First());
+                if (counts["Fighter"] < counts["Hungry"])
+                {
+                    didRecruit = Recruit(jobs["Fighter"].First());
+                }
+                else
+                {
+                    didRecruit = Recruit(jobs["Hungry"].First());
+                }
+                if (didRecruit)
+                {
+                    AI.BeaverCount++;
+                }
             }
-            else
-            {
-                Recruit(jobs["Hungry"].First());
-            }
-            Console.WriteLine("Recruit End:   Beaver Count {0}", this.Player.Beavers.Count);
         }
 
         public bool Recruit(Job job)
         {
             var lodge = this.Player.Lodges.FirstOrDefault(l => l.CanRecruit(job));
-            if (lodge != null)
-            {
-                job.Recruit(lodge);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return lodge != null && job.Recruit(lodge) != null;
         }
 
         #endregion

@@ -138,7 +138,7 @@ namespace Joueur.cs.Games.Stumped
 
         public static int CurrentCost(this Job job)
         {
-            return AI._Player.Beavers.Count < AI._Game.FreeBeaversCount ? 0 : job.Cost;
+            return AI.BeaverCount < AI._Game.FreeBeaversCount ? 0 : job.Cost;
         }
         
         public static bool CanRecruit(this Tile tile, Job job)
@@ -181,6 +181,11 @@ namespace Joueur.cs.Games.Stumped
         public static int ManhattanDistance(this Point p1, Point p2)
         {
             return Math.Abs(p1.x - p2.x) + Math.Abs(p1.y - p2.y);
+        }
+
+        public static int ManhattanDistance(this Tile t1, Tile t2)
+        {
+            return Math.Abs(t1.X - t2.X) + Math.Abs(t1.Y - t2.Y);
         }
     }
 }

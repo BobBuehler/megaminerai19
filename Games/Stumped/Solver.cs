@@ -222,5 +222,18 @@ namespace Joueur.cs.Games.Stumped
 
             return friendlyFitness + enemyFitness + percentFitness;
         }
+
+        public static Dictionary<Point, int> DistanceMap(IEnumerable<Point> sources, Func<Point, bool> isPassable)
+        {
+            var search = new AStar<Point>(
+                sources,
+                p => false,
+                (p1, p2) => GetMoveCost(p1.ToTile(), p2.ToTile()),
+                p => 0,
+                p => p.ToTile().GetReachableNeighbors(3).Select(t => t.ToPoint())
+            );
+
+            return search.GScore;
+        }
     }
 }
