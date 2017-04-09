@@ -176,7 +176,7 @@ namespace Joueur.cs.Games.Stumped
 
                 var movePoints = this.attackTargets.SelectMany(t => t.GetNeighbors()).Select(t => t.ToPoint()).ToHashSet();
 
-                var pairPath = Solver.GetClosestPath(angryBeavers, p => movePoints.Contains(p), AI.Fighter.Moves).ToArray();
+                var pairPath = Solver.GetClosestPath(angryBeavers, p => movePoints.Contains(p), AI.Bulky.Moves).ToArray();
                 if (pairPath.Length < 1)
                 {
                     return;
@@ -497,10 +497,10 @@ namespace Joueur.cs.Games.Stumped
                     didRecruit = Recruit(AI.Hungry, this.Game.Cattails().Select(s => s.Tile.ToPoint()));
                     if (didRecruit) counts[AI.Hungry.Title]++;
                 }
-                else if (counts["Fighter"] <= counts["Builder"] || !this.harvestTrees.Any())
+                else if (counts["Bulky"] <= counts["Builder"] || !this.harvestTrees.Any())
                 {
-                    didRecruit = Recruit(AI.Fighter, this.attackTargets.Select(t => t.ToPoint()));
-                    if (didRecruit) counts[AI.Fighter.Title]++;
+                    didRecruit = Recruit(AI.Bulky, this.attackTargets.Select(t => t.ToPoint()));
+                    if (didRecruit) counts[AI.Bulky.Title]++;
                 }
                 else if (this.harvestTrees.Any())
                 {
