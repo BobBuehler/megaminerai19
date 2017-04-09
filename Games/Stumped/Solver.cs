@@ -290,5 +290,25 @@ namespace Joueur.cs.Games.Stumped
             var target = beaver.Tile.GetNeighbors().FirstOrDefault(n => n.IsPathable() && beaver.Moves >= GetMoveCost(beaver.Tile, n));
             return target != null && beaver.Move(target);
         }
+
+        public static int MinManhattanDistance(IEnumerable<Point> set1, IEnumerable<Point> set2)
+        {
+            return set1.Select(s1 => set2.Select(s2 => s1.ManhattanDistance(s2)).Min()).Min();
+        }
+
+        public static IEnumerable<Point> ToPoints(this IEnumerable<Tile> tiles)
+        {
+            return tiles.Select(t => t.ToPoint());
+        }
+
+        public static IEnumerable<Point> ToPoints(this IEnumerable<Spawner> spawners)
+        {
+            return spawners.Select(s => s.Tile.ToPoint());
+        }
+
+        public static IEnumerable<Point> ToPoints(this IEnumerable<Beaver> beavers)
+        {
+            return beavers.Select(b => b.Tile.ToPoint());
+        }
     }
 }

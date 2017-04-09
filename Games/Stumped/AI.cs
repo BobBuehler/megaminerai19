@@ -118,6 +118,8 @@ namespace Joueur.cs.Games.Stumped
 
             LodgeBuilders();
 
+            Feast();
+
             BuildLodges();
 
             // Fall through
@@ -151,7 +153,7 @@ namespace Joueur.cs.Games.Stumped
 
         public void Attack()
         {
-            var angryBeavers = this.Player.Beavers.Where(b => b.Job != this.Builder).ToList();
+            var angryBeavers = this.Player.Beavers.Where(b => b.Job != this.Builder && b.Job != this.Hungry).ToList();
             this.attackTargets = this.Player.Opponent.Lodges.Concat(this.Player.Opponent.Beavers.Where(b => b.CanBeAttacked()).Select(b => b.Tile));
 
             while (angryBeavers.Any())
@@ -242,7 +244,7 @@ namespace Joueur.cs.Games.Stumped
             var builderBeavers = this.Player.Beavers.Where(b => b.Job == this.Builder).ToList();
             this.harvestTrees = this.Game.Spawner.Where(s => s.Type == "branches" && ValidTree(s)).Select(s => s.Tile.ToPoint()).ToHashSet();
 
-            while(builderBeavers.Any() && this.harvestTrees.Any() && this.harvestTrees.Any())
+            while(builderBeavers.Any() && this.harvestTrees.Any())
             {
                 var treeNeighbors = this.harvestTrees.SelectMany(t => t.ToTile().GetNeighbors().Where(n => n.LodgeOwner == null && (this.Player.BranchesToBuildLodge - n.Branches < this.Builder.CarryLimit || n.FlowDirection == ""))).ToHashSet();
                 if (!treeNeighbors.Any())
@@ -277,7 +279,7 @@ namespace Joueur.cs.Games.Stumped
         {
             BuildLodge(beaver);
             Solver.MoveAlong(beaver, path);
-            if (path.Length <= 2)
+            if (beaver.ToPoint().Equals(path.Last()))
             {
                 Solver.Drop(beaver, new[] { beaver.Tile }, "branches");
                 Solver.Harvest(beaver, new[] { tree });
@@ -305,21 +307,89 @@ namespace Joueur.cs.Games.Stumped
             }
         }
 
+        public void Feast()
+        {
+            var hungryBeavers = this.Player.Beavers.Where(b => b.Job == this.Hungry && b.Food < 12 && b.OpenCarryCapacity() > 0).ToList();
+            var cattails = this.Game.Cattails().Select(s => s.Tile.ToPoint()).ToHashSet();
+
+            while (hungryBeavers.Any() && cattails.Any())
+            {
+                var cattailNeighbors = cattails.SelectMany(c => c.ToTile().GetNeighbors()).Select(n => n.ToPoint()).ToHashSet();
+
+                var pairPath = Solver.GetClosestPath(hungryBeavers, p => cattailNeighbors.Contains(p), this.Hungry.Moves).ToArray();
+                if (pairPath.Length < 1)
+                {
+                    break;
+                }
+
+                var cattailNeighbor = pairPath.Last().ToTile();
+                var cattail = cattailNeighbor.GetNeighbors().First(n => cattails.Contains(n.ToPoint())).Spawner;
+                var beaver = pairPath.First().ToTile().Beaver;
+
+                if (pairPath.Length == 1)
+                {
+                    beaver = hungryBeavers.Where(b => b.Tile._HasNeighbor(cattail.Tile)).MaxByValue(b => b.Food);
+                    pairPath = new[] { beaver.ToPoint() };
+                }
+
+                EngageBeaverAndFood(beaver, cattail, pairPath);
+
+                hungryBeavers.Remove(beaver);
+                cattails.Remove(cattail.Tile.ToPoint());
+            }
+
+            var fullBeavers = this.Player.Beavers.Where(b => b.Food >= 12).ToList();
+            while (fullBeavers.Any())
+            {
+                var lodgeNeighbors = this.Player.Lodges.SelectMany(l => l.GetNeighbors()).Where(n => n.IsPathable()).Select(n => n.ToPoint()).ToHashSet();
+                var pairPath = Solver.GetClosestPath(fullBeavers, p => lodgeNeighbors.Contains(p), this.Hungry.Moves).ToArray();
+                if (pairPath.Length < 1)
+                {
+                    break;
+                }
+
+                var lodgeNeighbor = pairPath.Last().ToTile();
+                var lodge = lodgeNeighbor.GetNeighbors().First(n => n.LodgeOwner == this.Player);
+                var beaver = pairPath.First().ToTile().Beaver;
+
+                MoveBeaverAndDrop(beaver, lodge, pairPath);
+
+                fullBeavers.Remove(beaver);
+            }
+        }
+
+        public void EngageBeaverAndFood(Beaver beaver, Spawner cattail, Point[] path)
+        {
+            Solver.MoveAlong(beaver, path);
+            if (beaver.ToPoint().Equals(path.Last()))
+            {
+                Solver.Harvest(beaver, new[] { cattail });
+            }
+        }
+
+        public void MoveBeaverAndDrop(Beaver beaver, Tile lodge, Point[] path)
+        {
+            Solver.MoveAlong(beaver, path);
+            if (beaver.ToPoint().Equals(path.Last()))
+            {
+                Solver.Drop(beaver, new[] { lodge }, "food");
+            }
+        }
+
         public void Recruit()
         {
-            var counts = this.Player.Beavers.GroupBy(b => b.Job.Title).ToDictionary(g => g.Key, g => g.Count());
-            this.Game.Jobs.ForEach(j =>
-            {
-                if (!counts.ContainsKey(j.Title))
-                {
-                    counts[j.Title] = 0;
-                }
-            });
-
             var didRecruit = true;
             while (didRecruit)
             {
-                if (counts["Fighter"] <= counts["Builder"] || !this.harvestTrees.Any())
+                var counts = this.Game.Jobs.ToDictionary(j => j.Title, j => 0);
+                this.Player.Beavers.ForEach(b => counts[b.Job.Title]++);
+
+                if (counts["Hungry"] < this.Player.Beavers.Count / 7 && ShouldSpawnHungry())
+                {
+                    Console.WriteLine("HUNGRY!!!");
+                    didRecruit = Recruit(this.Hungry, this.Game.Cattails().Select(s => s.Tile.ToPoint()));
+                }
+                else if (counts["Fighter"] <= counts["Builder"] || !this.harvestTrees.Any())
                 {
                     didRecruit = Recruit(this.Fighter, this.attackTargets.Select(t => t.ToPoint()));
                 }
@@ -359,6 +429,20 @@ namespace Joueur.cs.Games.Stumped
             var lodge = recruiters.First();
 
             return lodge != null && job.Recruit(lodge) != null;
+        }
+
+        public bool ShouldSpawnHungry()
+        {
+            var nearness = Solver.MinManhattanDistance(this.Player.Lodges.ToPoints(), this.Game.Cattails().ToPoints());
+            if (this.Game.CurrentTurn < 70)
+            {
+                return nearness <= 2;
+            }
+            if (this.Game.CurrentTurn < 150)
+            {
+                return nearness <= 3;
+            }
+            return nearness <= 4;
         }
 
         #endregion

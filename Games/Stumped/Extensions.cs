@@ -202,5 +202,15 @@ namespace Joueur.cs.Games.Stumped
         {
             return (t1.TileNorth == t2 || t1.TileEast == t2 || t1.TileSouth == t2 || t1.TileWest == t2);
         }
+
+        public static IEnumerable<Spawner> Trees(this Game game)
+        {
+            return game.Spawner.Where(s => s.Type == "brancges");
+        }
+
+        public static IEnumerable<Spawner> Cattails(this Game game)
+        {
+            return game.Spawner.Where(s => s.Type == "food");
+        }
     }
 }
