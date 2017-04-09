@@ -108,41 +108,45 @@ namespace Joueur.cs.Games.Stumped
         /// <returns>Represents if you want to end your turn. True means end your turn, False means to keep your turn going and re-call this function.</returns>
         public bool RunTurn()
         {
-            if (this.Game.CurrentTurn < 2)
+            try
             {
-                Console.WriteLine("STARTING POSITION: {0}", this.Player.Beavers[0].ToPoint());
+                if (this.Game.CurrentTurn < 2)
+                {
+                    Console.WriteLine("STARTING POSITION: {0}", this.Player.Beavers[0].ToPoint());
+                }
+                Console.WriteLine("TURN:{0}, Beavers:{1}x{2}, Lodges:{3}x{4} ...", this.Game.CurrentTurn, this.Player.Beavers.Count, this.Player.Opponent.Beavers.Count, this.Player.Lodges.Count, this.Player.Opponent.Lodges.Count);
+
+                AI.BeaverCount = AI._Player.Beavers.Count;
+                AI.GoalLocations.Clear();
+                this.Game.Beavers.ForEach(b => AI.GoalLocations[b.Id] = b.ToPoint());
+
+                // OnTheBrink();
+
+                BuildLodges();
+
+                Attack();
+
+                LodgeBuilders();
+
+                Feast();
+
+                BuildLodges();
+
+                var useless = this.Player.Beavers.Where(b => b.CanAct() && b.CanMove());
+
+                // Fall through
+                foreach (Beaver b in this.Player.Beavers)
+                {
+                    Solver.Pickup(b, this.Player.Opponent.Lodges, "branches");
+                    Solver.Attack(b, this.Player.Opponent.Beavers);
+                    Solver.Attack(b, useless);
+                }
+
+                Recruit();
             }
-            Console.WriteLine("TURN:{0}, Beavers:{1}x{2}, Lodges:{3}x{4} ...", this.Game.CurrentTurn, this.Player.Beavers.Count, this.Player.Opponent.Beavers.Count, this.Player.Lodges.Count, this.Player.Opponent.Lodges.Count);
-
-            AI.BeaverCount = AI._Player.Beavers.Count;
-            AI.GoalLocations.Clear();
-            this.Game.Beavers.ForEach(b => AI.GoalLocations[b.Id] = b.ToPoint());
-
-            // OnTheBrink();
-            
-            BuildLodges();
-
-            Attack();
-
-            LodgeBuilders();
-
-            Feast();
-
-            BuildLodges();
-
-            var useless = this.Player.Beavers.Where(b => b.CanAct() && b.CanMove());
-
-            // Fall through
-            foreach (Beaver b in this.Player.Beavers)
-            {
-                Solver.Pickup(b, this.Player.Opponent.Lodges, "branches");
-                Solver.Attack(b, this.Player.Opponent.Beavers);
-                Solver.Attack(b, useless);
-            }
-
-            Recruit();
-
-            return true; // to signify that we are truly done with this turn
+            catch { }
+            finally { }
+            return true;
         }
 
         public void OnTheBrink()
