@@ -149,7 +149,7 @@ namespace Joueur.cs.Games.Stumped
                 return false;
             }
 
-            return (this.TileNorth == tile || this.TileEast == tile || this.TileSouth == tile || this.TileEast == tile);
+            return (this.TileNorth == tile || this.TileEast == tile || this.TileSouth == tile || this.TileWest == tile);
         }
 
 
