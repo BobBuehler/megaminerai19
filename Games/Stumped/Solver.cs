@@ -249,7 +249,7 @@ namespace Joueur.cs.Games.Stumped
             return friendlyFitness + enemyFitness + percentFitness;
         }
 
-        public static Dictionary<Point, int> DistanceMap(IEnumerable<Point> sources, Func<Point, bool> isPassable)
+        public static AStar<Point> Search(IEnumerable<Point> sources, int moves)
         {
             var search = new AStar<Point>(
                 sources,
@@ -259,7 +259,25 @@ namespace Joueur.cs.Games.Stumped
                 p => p.ToTile().GetReachableNeighbors(3).Select(t => t.ToPoint())
             );
 
-            return search.GScore;
+            return search;
+        }
+
+        public static int CalcTurnsToMove(Beaver beaver, Point end, AStar<Point> search)
+        {
+            var path = search.CalcPathTo(end);
+            var turns = 0;
+            var moves = beaver.Moves;
+            foreach (var p in path)
+            {
+                var cost = GetMoveCost(beaver.Tile, p.ToTile());
+                moves -= cost;
+                if (moves < 0)
+                {
+                    turns++;
+                    moves = beaver.Job.Moves - cost;
+                }
+            }
+            return turns;
         }
     }
 }
