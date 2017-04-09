@@ -198,22 +198,28 @@ namespace Joueur.cs.Games.Stumped
         {
             var hungryBeavers = this.Player.Beavers.Where(b => b.Job == this.Hungry).ToList();
             var trees = this.Game.Spawner.Where(s => s.Type == "branches" && ValidTree(s)).Select(s => s.Tile.ToPoint()).ToHashSet();
-            var treeNeighbors = trees.SelectMany(t => t.ToTile().GetNeighbors()).ToHashSet();
 
-            while(hungryBeavers.Any() && trees.Any() && treeNeighbors.Any())
+            while(hungryBeavers.Any() && trees.Any() && trees.Any())
             {
+                var treeNeighbors = trees.SelectMany(t => t.ToTile().GetNeighbors().Where(n => n.LodgeOwner == null)).ToHashSet();
+                if (!treeNeighbors.Any())
+                {
+                    return;
+                }
+
                 var pairPath = Solver.GetClosestPath(hungryBeavers, p => treeNeighbors.Contains(p.ToTile()), this.Hungry.Moves).ToArray();
                 if (pairPath.Length < 1)
                 {
                     return;
                 }
+
                 var treeNeighbor = pairPath.Last().ToTile();
                 var tree = treeNeighbor.GetNeighbors().First(n => trees.Contains(n.ToPoint())).Spawner;
                 var beaver = pairPath.First().ToTile().Beaver;
 
                 if (pairPath.Length == 1)
                 {
-                    beaver = tree.Tile.GetNeighbors().Where(t => t.Beaver != null && t.Beaver.Owner == this.Player).MaxByValue(t => t.Branches + t.Beaver.Branches).Beaver;
+                    beaver = hungryBeavers.Where(b => b.Tile.HasNeighbor(tree.Tile)).MaxByValue(b => b.Branches + b.Tile.Branches);
                     pairPath = new[] { beaver.ToPoint() };
                 }
 
@@ -221,18 +227,17 @@ namespace Joueur.cs.Games.Stumped
 
                 hungryBeavers.Remove(beaver);
                 trees.Remove(tree.Tile.ToPoint());
-                treeNeighbors = trees.SelectMany(t => t.ToTile().GetNeighbors()).ToHashSet();
             }
         }
 
         public void EngageBeaverAndTree(Beaver beaver, Spawner tree, Point[] path)
         {
             BuildLodge(beaver);
-            Solver.ApplyMoves(beaver, path);
+            Solver.MoveAlong(beaver, path);
             if (path.Length <= 1)
             {
-                Solver.Drop(beaver, new [] {beaver.Tile}, "branches");
-                Solver.Harvest(beaver, new [] {tree});
+                Solver.Drop(beaver, new[] { beaver.Tile }, "branches");
+                Solver.Harvest(beaver, new[] { tree });
             }
             BuildLodge(beaver);
         }
