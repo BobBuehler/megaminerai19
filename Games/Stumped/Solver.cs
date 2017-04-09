@@ -11,7 +11,7 @@ namespace Joueur.cs.Games.Stumped
         {
             var targetPoints = targets.ToHashSet<Point>();
 
-            if (mover.Moves > 0)
+            if (mover.CanMove())
             {
                 var search = new AStar<Point>(
                     new[] { mover.ToPoint() },
@@ -27,6 +27,11 @@ namespace Joueur.cs.Games.Stumped
 
         public static void MoveAlong(Beaver beaver, IEnumerable<Point> steps)
         {
+            if (!beaver.CanMove())
+            {
+                return;
+            }
+
             var queue = steps.SkipWhile(p => p.Equals(beaver.ToPoint())).ToQueue();
             while (queue.Count > 0 && GetMoveCost(beaver.Tile, queue.Peek().ToTile()) <= beaver.Moves)
             {
@@ -49,11 +54,11 @@ namespace Joueur.cs.Games.Stumped
 
         public static void Attack(Beaver attacker, IEnumerable<Beaver> targets)
         {
-            var targettables = targets.Where(t => t.Recruited && t.Health > 0);
+            var targettables = targets.Where(t => t.CanBeAttacked());
             var target = targettables.FirstOrDefault(t => attacker.Tile._HasNeighbor(t.Tile));
             if (target != null)
             {
-                while (attacker.Actions > 0 && target.Health > 0)
+                while (attacker.CanAct() && target.CanBeAttacked())
                 {
                     attacker.Attack(target);
                 }
@@ -62,7 +67,7 @@ namespace Joueur.cs.Games.Stumped
 
         public static void MoveAndAttack(Beaver attacker, IEnumerable<Beaver> targets)
         {
-            if (attacker.Moves > 0)
+            if (attacker.CanMove())
             {
                 var targetPoints = targets
                     .Where(t => t.Health > 0)
@@ -85,7 +90,7 @@ namespace Joueur.cs.Games.Stumped
             var target = targettables.FirstOrDefault(t => harvester.Tile._HasNeighbor(t.Tile));
             if (target != null)
             {
-                while (harvester.Actions > 0 && target.Health > 0)
+                while (harvester.CanAct() && target.Health > 0)
                 {
                     harvester.Harvest(target);
                 }
@@ -99,7 +104,7 @@ namespace Joueur.cs.Games.Stumped
                 return;
             }
             
-            if (harvester.Moves > 0)
+            if (harvester.CanMove())
             {
                 var movePoints = spawners
                     .SelectMany(s => s.Tile.GetNeighbors().Select(n => n.ToPoint()));
@@ -112,7 +117,7 @@ namespace Joueur.cs.Games.Stumped
 
         public static void Pickup(Beaver picker, IEnumerable<Tile> targets, string resource)
         {
-            if (picker.Actions <= 0 || picker.OpenCarryCapacity() == 0)
+            if (!picker.CanAct() || picker.OpenCarryCapacity() == 0)
             {
                 return;
             }
@@ -127,13 +132,13 @@ namespace Joueur.cs.Games.Stumped
 
         public static void MoveAndPickup(Beaver picker, IEnumerable<Tile> targets, string resource)
         {
-            if (picker.Actions <= 0 || picker.OpenCarryCapacity() == 0)
+            if (!picker.CanAct() || picker.OpenCarryCapacity() == 0)
             {
                 return;
             }
 
             var targetPoints = targets.Where(t => t.GetCount(resource) > 0);
-            if (picker.Moves > 0)
+            if (picker.CanMove())
             {
                 var movePoints = targetPoints.Concat(targetPoints.SelectMany(t => t.GetNeighbors()))
                     .Select(n => n.ToPoint());
@@ -145,7 +150,7 @@ namespace Joueur.cs.Games.Stumped
 
         public static void Drop(Beaver dropper, IEnumerable<Tile> targets, string resource)
         {
-            if (dropper.Actions <= 0 || dropper.GetCount(resource) == 0)
+            if (dropper.CanAct() || dropper.GetCount(resource) == 0)
             {
                 return;
             }
@@ -159,12 +164,12 @@ namespace Joueur.cs.Games.Stumped
 
         public static void MoveAndDrop(Beaver dropper, IEnumerable<Tile> targets, string resource)
         {
-            if (dropper.Actions <= 0 || dropper.GetCount(resource) == 0)
+            if (dropper.CanAct() || dropper.GetCount(resource) == 0)
             {
                 return;
             }
             
-            if (dropper.Moves > 0)
+            if (dropper.CanMove())
             {
                 var movePoints = targets.Concat(targets.SelectMany(t => t.GetNeighbors()))
                     .Select(n => n.ToPoint());

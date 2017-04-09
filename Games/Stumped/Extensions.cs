@@ -131,6 +131,11 @@ namespace Joueur.cs.Games.Stumped
             return beaver.Health > 0 && beaver.Actions > 0 && beaver.TurnsDistracted == 0 && beaver.Recruited == true;
         }
 
+        public static bool CanMove(this Beaver beaver)
+        {
+            return beaver.Health > 0 && beaver.Moves > 0 && beaver.TurnsDistracted == 0 && beaver.Recruited == true;
+        }
+
         public static bool CanBeAttacked(this Beaver beaver)
         {
             return beaver.Owner == AI._Player.Opponent && beaver.Health > 0 && beaver.Recruited == true;
