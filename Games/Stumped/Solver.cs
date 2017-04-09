@@ -21,12 +21,16 @@ namespace Joueur.cs.Games.Stumped
                     p => p.ToTile().GetReachableNeighbors(mover.Job.Moves).Select(t => t.ToPoint())
                 );
 
-                var path = search.Path.ToArray();
-                var steps = path.Skip(1).ToQueue();
-                while (steps.Count > 0 && GetMoveCost(mover.Tile, steps.Peek().ToTile()) <= mover.Moves)
-                {
-                    mover.Move(steps.Dequeue().ToTile());
-                }
+                MoveAlong(mover, search.Path);
+            }
+        }
+
+        public static void MoveAlong(Beaver beaver, IEnumerable<Point> steps)
+        {
+            var queue = steps.SkipWhile(p => p.Equals(beaver.ToPoint())).ToQueue();
+            while (queue.Count > 0 && GetMoveCost(beaver.Tile, queue.Peek().ToTile()) <= beaver.Moves)
+            {
+                beaver.Move(queue.Dequeue().ToTile());
             }
         }
 
@@ -172,7 +176,11 @@ namespace Joueur.cs.Games.Stumped
 
         public static int GetMoveCost(Tile source, Tile dest)
         {
-            if (source.GetNeighbor(source.FlowDirection) == dest)
+            if (source == dest)
+            {
+                return 0;
+            }
+            else if (source.GetNeighbor(source.FlowDirection) == dest)
             {
                 return 1;
             } else if (dest.GetNeighbor(dest.FlowDirection) == source)
@@ -211,7 +219,7 @@ namespace Joueur.cs.Games.Stumped
 
         public static float NewLodgeFitness(Tile tile)
         {
-            if (tile.LodgeOwner != null || (tile.Beaver != null && tile.Beaver.Owner != AI._Player))
+            if (tile.LodgeOwner != null || tile.Spawner != null || (tile.Beaver != null && tile.Beaver.Owner != AI._Player))
             {
                 return float.MaxValue;
             }

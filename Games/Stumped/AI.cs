@@ -105,7 +105,7 @@ namespace Joueur.cs.Games.Stumped
 
             BuildLodges();
 
-            HungryLogdeBuilders();
+            // HungryLogdeBuilders();
             CoordinateBuildLodges();
 			
 			// Fall through
@@ -123,10 +123,59 @@ namespace Joueur.cs.Games.Stumped
 
         public void Attack()
         {
-            foreach (Beaver b in this.Player.Beavers.Where(b => b.Job == this.Basic || b.Job == this.Fighter))
+            var angryBeavers = this.Player.Beavers.Where(b => b.Job == this.Basic || b.Job == this.Fighter).ToList();
+
+            while(angryBeavers.Any())
             {
-                Solver.MoveAndPickup(b, this.Player.Opponent.Lodges, "branches");
-                Solver.MoveAndAttack(b, this.Player.Opponent.Beavers);
+                var targetTiles = this.Player.Opponent.Lodges.Concat(this.Player.Opponent.Beavers.Where(b => b.CanBeAttacked()).Select(b => b.Tile));
+                if (this.Player.Opponent.Lodges.Count >= 8)
+                {
+                    targetTiles = this.Player.Opponent.Lodges;
+                }
+
+                var movePoints = targetTiles.SelectMany(t => t.GetNeighbors()).Select(t => t.ToPoint()).ToHashSet();
+
+                var pairPath = Solver.GetClosestPath(angryBeavers, p => movePoints.Contains(p), this.Fighter.Moves).ToArray();
+                if (pairPath.Length < 1)
+                {
+                    return;
+                }
+                
+                var beaver = pairPath.First().ToTile().Beaver;
+                angryBeavers.Remove(beaver);
+
+                if (pairPath.Length > 1)
+                {
+                    Solver.MoveAlong(beaver, pairPath);
+                }
+
+                var target = targetTiles.FirstOrDefault(t => t.HasNeighbor(beaver.Tile));
+                if (target == null)
+                {
+                    continue;
+                }
+
+                if (target.Beaver != null && target.Beaver.CanBeAttacked())
+                {
+                    while (beaver.CanAct())
+                    {
+                        beaver.Attack(target.Beaver);
+                    }
+                }
+                else if (target.LodgeOwner == this.Player.Opponent)
+                {
+                    while (beaver.CanAct())
+                    {
+                        if (beaver.OpenCarryCapacity() > 0)
+                        {
+                            beaver.Pickup(target, "branch");
+                        }
+                        else
+                        {
+                            beaver.Drop(beaver.Tile, "branch");
+                        }
+                    }
+                }
             }
         }
 

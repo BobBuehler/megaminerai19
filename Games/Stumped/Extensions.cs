@@ -131,6 +131,11 @@ namespace Joueur.cs.Games.Stumped
             return beaver.Health > 0 && beaver.Actions > 0 && beaver.TurnsDistracted == 0 && beaver.Recruited == true;
         }
 
+        public static bool CanBeAttacked(this Beaver beaver)
+        {
+            return beaver.Owner == AI._Player.Opponent && beaver.Health > 0 && beaver.Recruited == true;
+        }
+
         public static int OpenCarryCapacity(this Beaver beaver)
         {
             return beaver.Job.CarryLimit - (beaver.Branches + beaver.Food);
