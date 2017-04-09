@@ -117,7 +117,7 @@ namespace Joueur.cs.Games.Stumped
             return AI._Game.GetTileAt(point.x, point.y);
         }
 
-        public static Beaver toBeaver(this Point point)
+        public static Beaver ToBeaver(this Point point)
         {
             return point.ToTile().Beaver;
         }

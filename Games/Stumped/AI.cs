@@ -28,12 +28,15 @@ namespace Joueur.cs.Games.Stumped
         /// This is your AI's player. This AI class is not a player, but it should command this Player.
         /// </summary>
         public readonly Stumped.Player Player;
-        #pragma warning restore 0169
-        #pragma warning restore 0649
+#pragma warning restore 0169
+#pragma warning restore 0649
 
         // you can add additional properties here for your AI to use
         #endregion
 
+        public Job Basic;
+        public Job Fighter;
+        public Job Hungry;
 
         #region Methods
         /// <summary>
@@ -56,6 +59,10 @@ namespace Joueur.cs.Games.Stumped
             base.Start();
             AI._Game = this.Game;
             AI._Player = this.Player;
+
+            this.Basic = this.Game.Jobs.First(j => j.Title == "Basic");
+            this.Fighter = this.Game.Jobs.First(j => j.Title == "Fighter");
+            this.Hungry = this.Game.Jobs.First(j => j.Title == "Hungry");
         }
 
         /// <summary>
@@ -91,8 +98,40 @@ namespace Joueur.cs.Games.Stumped
         {
             Console.WriteLine($"My Turn {this.Game.CurrentTurn}");
             AI.BeaverCount = AI._Player.Beavers.Count;
+            
+            BuildLodges();
 
+            Attack();
 
+            BuildLodges();
+
+            HungryLogdeBuilders();
+            CoordinateBuildLodges();
+			
+			// Fall through
+			foreach(Beaver b in this.Player.Beavers)
+            {
+                Solver.Pickup(b, this.Player.Opponent.Lodges, "branches");
+                Solver.Attack(b, this.Player.Opponent.Beavers);
+            }
+
+            Recruit();
+
+            Console.WriteLine("Done with our turn");
+            return true; // to signify that we are truly done with this turn
+        }
+
+        public void Attack()
+        {
+            foreach (Beaver b in this.Player.Beavers.Where(b => b.Job == this.Basic || b.Job == this.Fighter))
+            {
+                Solver.MoveAndPickup(b, this.Player.Opponent.Lodges, "branches");
+                Solver.MoveAndAttack(b, this.Player.Opponent.Beavers);
+            }
+        }
+
+        public void BuildLodges()
+        {
             foreach (Beaver b in this.Player.Beavers.Where(b => b.CanAct()))
             {
                 if (b.CanBuildLodge())
@@ -100,22 +139,35 @@ namespace Joueur.cs.Games.Stumped
                     b.BuildLodge();
                 }
             }
+        }
 
-            CoordinateBuildLodges();
-			
-			// Fall through
-			foreach(Beaver b in this.Player.Beavers)
+        public void HungryLogdeBuilders()
+        {
+            var hungryBeavers = this.Player.Beavers.Where(b => b.Job == this.Hungry).ToList();
+            var trees = this.Game.Spawner.Where(s => s.Type == "branches").Select(s => s.Tile.ToPoint()).ToHashSet();
+
+            while(hungryBeavers.Any() && trees.Any())
             {
-                Solver.MoveAndPickup(b, this.Player.Opponent.Lodges, "branches");
-                Solver.MoveAndAttack(b, this.Player.Opponent.Beavers);
-                Solver.MoveAndHarvest(b, this.Game.Spawner);
-                Solver.MoveAndDrop(b, this.Player.Lodges, "food");
+                var pairPath = Solver.GetClosestPath(hungryBeavers, p => trees.Contains(p), this.Hungry.Moves).ToArray();
+                var tree = pairPath.Last().ToTile().Spawner;
+                var beaver = pairPath.First().ToTile().Beaver;
+
+                if (pairPath.Length == 2)
+                {
+                    beaver = tree.Tile.GetNeighbors().Where(t => t.Beaver != null).MaxByValue(t => t.Branches + t.Beaver.Branches).Beaver;
+                    pairPath = new[] { beaver.ToPoint(), pairPath[1] };
+                }
+
+                EngageBeaverAndTree(beaver, tree, pairPath);
+
+                hungryBeavers.Remove(beaver);
+                trees.Remove(tree.Tile.ToPoint());
             }
+        }
 
-            Recruit();
+        public void EngageBeaverAndTree(Beaver beaver, Spawner tree, Point[] path)
+        {
 
-            Console.WriteLine("Done with our turn");
-            return true; // to signify that we are truly done with this turn
         }
 
         public void CoordinateBuildLodges()

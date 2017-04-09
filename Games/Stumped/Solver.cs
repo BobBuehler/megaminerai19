@@ -30,6 +30,19 @@ namespace Joueur.cs.Games.Stumped
             }
         }
 
+        public static IEnumerable<Point> GetClosestPath(IEnumerable<Beaver> beavers, Func<Point, bool> isGoal, int moves)
+        {
+            var search = new AStar<Point>(
+                beavers.Select(b => b.ToPoint()),
+                isGoal,
+                (p1, p2) => GetMoveCost(p1.ToTile(), p2.ToTile()),
+                p => 0,
+                p => p.ToTile().GetReachableNeighbors(moves).Select(t => t.ToPoint())
+            );
+
+            return search.Path;
+        }
+
         public static void Attack(Beaver attacker, IEnumerable<Beaver> targets)
         {
             var targettables = targets.Where(t => t.Recruited && t.Health > 0);
