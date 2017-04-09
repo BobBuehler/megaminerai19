@@ -206,7 +206,7 @@ namespace Joueur.cs.Games.Stumped
 
             while(hungryBeavers.Any() && this.harvestTrees.Any() && this.harvestTrees.Any())
             {
-                var treeNeighbors = this.harvestTrees.SelectMany(t => t.ToTile().GetNeighbors().Where(n => n.LodgeOwner == null && (this.Player.Lodges.Count() < 6 || n.FlowDirection == ""))).ToHashSet();
+                var treeNeighbors = this.harvestTrees.SelectMany(t => t.ToTile().GetNeighbors().Where(n => n.LodgeOwner == null && (this.Player.BranchesToBuildLodge - n.Branches < this.Hungry.CarryLimit || n.FlowDirection == ""))).ToHashSet();
                 if (!treeNeighbors.Any())
                 {
                     return;
@@ -249,7 +249,7 @@ namespace Joueur.cs.Games.Stumped
         
         public bool ValidTree(Spawner tree)
         {
-            return tree.Tile.GetNeighbors().Where(n => n.LodgeOwner == null && n.Spawner == null && (this.Player.Lodges.Count() < 6 || n.FlowDirection == "")).Count() > 0;
+            return tree.Tile.GetNeighbors().Where(n => n.LodgeOwner == null && n.Spawner == null && (this.Player.BranchesToBuildLodge - n.Branches < this.Hungry.CarryLimit || n.FlowDirection == "")).Count() > 0;
         }
 
         public void CoordinateBuildLodges()
