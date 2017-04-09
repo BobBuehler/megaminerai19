@@ -279,5 +279,16 @@ namespace Joueur.cs.Games.Stumped
             }
             return turns;
         }
+
+        public static bool MoveOff(Beaver beaver)
+        {
+            if (!beaver.CanMove())
+            {
+                return false;
+            }
+
+            var target = beaver.Tile.GetNeighbors().FirstOrDefault(n => n.IsPathable());
+            return target != null && beaver.Move(target);
+        }
     }
 }
